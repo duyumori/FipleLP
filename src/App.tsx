@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
-import { DemoStrip } from "./components/DemoStrip";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { legalDocs } from "./data/legal";
@@ -63,7 +62,6 @@ export default function App() {
       <Header />
       <main>
         <HeroSection />
-        <DemoStrip />
         <HowItWorksSection />
         <MacShowcase />
         <ProductSection />

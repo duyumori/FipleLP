@@ -9,20 +9,13 @@ const en = {
     download: "Download",
   },
   hero: {
-    badge: "Native Mac + iPhone app",
-    titleLine1: "One tap back",
-    titleLine2Pre: "into your ",
-    titleAccent: "flow.",
-    subtitle:
-      "Fiple turns your iPhone into a command surface for your Mac: launch apps, sites, and workspaces, triage files, even run a terminal — in one tap, without breaking focus.",
+    titleLine1: "Launch your Mac",
+    titleLine2Pre: "from your ",
+    titleAccent: "iPhone.",
+    scene: ["You tap…", "Your Mac launches…", "You're back in flow."],
+    subtitle: "Apps, sites and whole workspaces on your Mac one tap away on your iPhone.",
     ctaPrimary: "Download on the App Store",
     ctaSecondary: "See how it works",
-    tags: ["Pairs in seconds", "No account to try", "Local network, no tracking"],
-  },
-  demo: {
-    beats: ["Tap on iPhone", "Mac launches instantly", "Back to your flow"],
-    nodes: ["iPhone", "Mac", "Connected"],
-    aria: "How Fiple works in three beats",
   },
   how: {
     eyebrow: "Setup",
@@ -154,20 +147,13 @@ const ru: typeof en = {
     download: "Скачать",
   },
   hero: {
-    badge: "Нативное приложение для Mac и iPhone",
-    titleLine1: "Одним касанием ",
-    titleLine2Pre: "снова в ",
-    titleAccent: "потоке.",
-    subtitle:
-      "Fiple превращает iPhone в пульт управления вашим Mac: запускайте приложения, сайты и рабочие пространства, разбирайте файлы и даже открывайте терминал — одним касанием, не отвлекаясь от дела.",
+    titleLine1: "Запускайте Mac",
+    titleLine2Pre: "прямо с ",
+    titleAccent: "iPhone.",
+    scene: ["Вы касаетесь…", "Mac запускается…", "И вы снова в потоке."],
+    subtitle: "Приложения, сайты и целые рабочие пространства Mac в одном касании на iPhone.",
     ctaPrimary: "Скачать в App Store",
     ctaSecondary: "Как это работает",
-    tags: ["Подключение за секунды", "Без регистрации", "Локальная сеть, без трекинга"],
-  },
-  demo: {
-    beats: ["Тап на iPhone", "Mac запускает мгновенно", "Снова в потоке"],
-    nodes: ["iPhone", "Mac", "Подключено"],
-    aria: "Как Fiple работает в три шага",
   },
   how: {
     eyebrow: "Настройка",
@@ -299,20 +285,13 @@ const kz: typeof en = {
     download: "Жүктеу",
   },
   hero: {
-    badge: "Mac пен iPhone-ға арналған нативті қосымша",
-    titleLine1: "Бір түртумен ",
-    titleLine2Pre: "қайта ",
-    titleAccent: "ағыныңызда.",
-    subtitle:
-      "Fiple iPhone-ды Mac-ты басқару пультіне айналдырады: қосымшаларды, сайттарды және жұмыс кеңістіктерін іске қосыңыз, файлдарды сұрыптаңыз, тіпті терминал ашыңыз — бір түртумен, назарыңызды бұзбай.",
+    titleLine1: "Mac-ты",
+    titleLine2Pre: "iPhone-нан ",
+    titleAccent: "басқарыңыз.",
+    scene: ["Сіз түртесіз…", "Mac іске қосылады…", "Қайта ағыныңыздасыз."],
+    subtitle: "Mac-тағы қосымшалар, сайттар мен жұмыс кеңістіктері iPhone-да бір түртуде.",
     ctaPrimary: "App Store-дан жүктеу",
     ctaSecondary: "Қалай жұмыс істейтінін көру",
-    tags: ["Секундтарда жұпталады", "Тіркелудің қажеті жоқ", "Жергілікті желі, трекингсіз"],
-  },
-  demo: {
-    beats: ["iPhone-да түртіңіз", "Mac бірден іске қосылады", "Қайта ағыныңызда"],
-    nodes: ["iPhone", "Mac", "Connected"],
-    aria: "Fiple үш қадаммен қалай жұмыс істейді",
   },
   how: {
     eyebrow: "Баптау",
