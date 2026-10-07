@@ -4,6 +4,7 @@ import { Apple, Check, Download } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL, MAC_DOWNLOAD_URL } from "../lib/links";
+import { SectionRule, frame, meta } from "../lib/ui";
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
 type StatusKey = "default" | "emptyEmail" | "adding" | "already" | "success" | "error";
@@ -56,77 +57,66 @@ export function DownloadSection() {
   const message = t.download.status[statusKey];
 
   return (
-    <section
-      className="mx-auto w-[min(1120px,calc(100%_-_40px))] scroll-mt-28 pt-10 pb-24 max-sm:w-[min(calc(100%_-_24px),1120px)]"
-      id="download"
-    >
-      <div className="relative overflow-hidden rounded-[28px] border border-line bg-ink px-[clamp(28px,6vw,72px)] py-[clamp(40px,7vw,72px)] text-center shadow-device">
-        {/* ambient accents */}
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[120%] -translate-x-1/2 bg-[radial-gradient(circle,rgba(46,107,255,0.45),transparent_60%)] blur-2xl" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-24 -left-10 h-60 w-72 bg-[radial-gradient(circle,rgba(52,199,89,0.35),transparent_60%)] blur-2xl" aria-hidden="true" />
-
-        <div className="relative">
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 font-mono text-[12px] font-medium text-white/80">
-            <span className="size-1.5 rounded-full bg-green" aria-hidden="true" />
-            {t.download.badge}
-          </p>
-          <h2 className="mx-auto mt-5 max-w-[760px] font-display text-[clamp(34px,5vw,60px)] leading-[1.02] font-bold tracking-[-0.035em] text-white">
-            {t.download.title}
-          </h2>
-          <p className="mx-auto mt-4 max-w-[560px] text-[18px] leading-[1.6] text-white/65">
-            {t.download.subtitle}
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+    <section className={`${frame} scroll-mt-20 bg-ink pt-6 pb-14 text-white max-sm:pb-12`} id="download" data-header-dark>
+      <SectionRule index="05" label={t.download.badge} dark />
+      <div className="mt-24 grid grid-cols-12 items-end gap-x-6 gap-y-10 max-sm:mt-16">
+        <h2 className="col-span-8 font-display text-[clamp(48px,6.2vw,100px)] leading-[0.92] font-light tracking-[-0.03em] text-balance text-white max-[940px]:col-span-12">
+          {t.download.title}
+        </h2>
+        <div className="col-span-4 col-start-9 pb-[0.4em] max-[940px]:col-span-12 max-[940px]:col-start-1">
+          <p className="max-w-[440px] text-[19px] leading-[1.4] font-light text-white/65 max-sm:text-[17px]">{t.download.subtitle}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
             <a
-              className="inline-flex min-h-[52px] items-center gap-2.5 rounded-xl bg-white px-7 text-[16px] font-semibold text-ink shadow-lift transition hover:bg-white/90 active:scale-[0.98]"
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-white px-5 text-[15px] font-medium text-ink transition hover:bg-white/90 active:scale-[0.98]"
               href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Apple size={19} />
+              <Apple size={17} />
               {t.download.appStore}
             </a>
             <a
-              className="inline-flex min-h-[52px] items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-6 text-[16px] font-semibold text-white transition hover:bg-white/15 active:scale-[0.98]"
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-white/25 px-5 text-[15px] font-medium text-white transition hover:border-white/50 active:scale-[0.98]"
               href={MAC_DOWNLOAD_URL}
             >
-              <Download size={18} />
+              <Download size={16} />
               {t.download.macDirect}
             </a>
           </div>
-
-          <form
-            className="mx-auto mt-5 flex max-w-[520px] items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.06] p-2 backdrop-blur-sm transition duration-200 focus-within:border-white/30 focus-within:bg-white/[0.09] focus-within:ring-4 focus-within:ring-white/10 max-sm:flex-col max-sm:gap-2.5"
-            onSubmit={handleSubmit}
-          >
-            <input
-              name="email"
-              className="h-[50px] w-full min-w-0 bg-transparent px-4 text-[16px] text-white placeholder:text-white/40 focus:outline-none max-sm:text-center"
-              aria-label={t.download.emailAria}
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
-            <button
-              className="inline-flex h-[50px] shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 text-[16px] font-semibold text-ink transition hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 max-sm:w-full"
-              disabled={submitState === "submitting"}
-              type="submit"
-            >
-              {submitState === "submitting" ? t.download.submitting : t.download.submitIdle}
-            </button>
-          </form>
-
-          <p
-            className={`mx-auto mt-4 flex min-h-6 items-center justify-center gap-1.5 text-[14px] ${
-              submitState === "error" ? "text-red-300" : success ? "text-green" : "text-white/55"
-            }`}
-            role="status"
-          >
-            {success && <Check size={15} />}
-            {message}
-          </p>
         </div>
+      </div>
+
+      {/* Email updates — secondary, so it sits under a hairline as a quiet single row */}
+      <div className="mt-24 grid grid-cols-12 items-center gap-x-6 gap-y-4 border-t border-white/20 pt-6 max-sm:mt-16">
+        <p
+          className={`col-span-6 flex items-center gap-1.5 text-[15px] font-light max-[940px]:col-span-12 ${
+            submitState === "error" ? "text-white" : success ? "text-white" : "text-white/55"
+          }`}
+          role="status"
+        >
+          {success && <Check size={15} />}
+          {message}
+        </p>
+        <form
+          className="col-span-5 col-start-8 flex items-center gap-2 border-b border-white/25 transition focus-within:border-white max-[940px]:col-span-12 max-[940px]:col-start-1"
+          onSubmit={handleSubmit}
+        >
+          <input
+            name="email"
+            className="h-12 w-full min-w-0 bg-transparent text-[16px] font-light text-white placeholder:text-white/35 focus:outline-none"
+            aria-label={t.download.emailAria}
+            type="email"
+            placeholder="you@example.com"
+            required
+          />
+          <button
+            className={`shrink-0 py-3 whitespace-nowrap text-white transition hover:text-white/60 disabled:cursor-not-allowed disabled:opacity-60 ${meta}`}
+            disabled={submitState === "submitting"}
+            type="submit"
+          >
+            {submitState === "submitting" ? t.download.submitting : t.download.submitIdle} →
+          </button>
+        </form>
       </div>
     </section>
   );
