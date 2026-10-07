@@ -8,41 +8,31 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  color: #0b0b0f;
-  background-color: #f2f3f5;
-  background-image:
-    radial-gradient(900px 520px at 78% -8%, rgba(47, 107, 255, 0.1), transparent 70%),
-    radial-gradient(760px 460px at 6% 2%, rgba(52, 199, 89, 0.08), transparent 70%);
-  background-attachment: fixed;
-  font-family: "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
+  color: #100f0f;
+  background-color: #f9f9f6;
+  font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* Faint dot grid that fades out toward the page body */
-body::before {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  content: "";
-  background-image: radial-gradient(rgba(11, 11, 15, 0.05) 0.7px, transparent 0.7px);
-  background-size: 22px 22px;
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 55%);
-  mask-image: linear-gradient(to bottom, black 0%, transparent 55%);
-}
-
-button,
-input {
-  font: inherit;
+/*
+ * Display headings run on Instrument Serif (400 only). The layout was written
+ * for a tight sans, so the serif gets its own metric overrides here instead of
+ * editing every heading: no synthetic bold, relaxed tracking, readable leading.
+ */
+.font-display {
+  font-synthesis-weight: none;
+  letter-spacing: -0.015em;
+  line-height: 1.04;
 }
 
 ::selection {
-  background: rgba(46, 107, 255, 0.18);
+  background: rgba(16, 15, 15, 0.14);
 }
 
 :focus-visible {
-  outline: 2px solid #2e6bff;
+  outline: 2px solid #100f0f;
   outline-offset: 2px;
 }
 
