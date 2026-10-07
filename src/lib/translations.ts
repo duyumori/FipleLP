@@ -62,20 +62,6 @@ const en = {
     title: "Not a remote desktop. Not another dock.",
     subtitle:
       "Fiple is a second command surface for your Mac, the fastest way to start what you were about to do, whoever you are.",
-    cards: [
-      {
-        title: "For builders",
-        body: "Editor, terminal, localhost, docs, and your AI assistant, the whole stack from one workspace.",
-      },
-      {
-        title: "For creators",
-        body: "Design tools, assets, browser preview, and exports, lined up and ready to fire.",
-      },
-      {
-        title: "For focus",
-        body: "Start your writing or study setup in one tap and stop hunting through windows.",
-      },
-    ],
   },
   download: {
     badge: "Available now",
@@ -186,20 +172,6 @@ const ru: typeof en = {
     title: "Не удалённый рабочий стол. И не ещё один док.",
     subtitle:
       "Fiple становится второй панелью управления вашим Mac: самый быстрый способ начать то, что вы собирались сделать, кем бы вы ни были.",
-    cards: [
-      {
-        title: "Для разработчиков",
-        body: "Редактор, терминал, localhost, документация и AI-ассистент, весь стек из одного рабочего пространства.",
-      },
-      {
-        title: "Для креаторов",
-        body: "Дизайн-инструменты, ассеты, превью в браузере и экспорт, всё под рукой и готово к запуску.",
-      },
-      {
-        title: "Для концентрации",
-        body: "Запустите окружение для письма или учёбы одним тапом, и хватит искать по окнам.",
-      },
-    ],
   },
   download: {
     badge: "Уже доступно",
@@ -310,20 +282,6 @@ const kz: typeof en = {
     title: "Қашықтағы жұмыс үстелі емес. Тағы бір док та емес.",
     subtitle:
       "Fiple сіздің Mac-ыңыз үшін екінші басқару беті болады: кім болсаңыз да, жасамақ болған ісіңізді бастаудың ең жылдам жолы.",
-    cards: [
-      {
-        title: "Құрастырушыларға",
-        body: "Редактор, терминал, localhost, құжаттама және AI-көмекші, бүкіл стек бір жұмыс кеңістігінен.",
-      },
-      {
-        title: "Креаторларға",
-        body: "Дизайн құралдары, ассеттер, браузердегі превью және экспорт, бәрі қолжетімді әрі іске қосуға дайын.",
-      },
-      {
-        title: "Шоғырлануға",
-        body: "Жазу немесе оқу ортасын бір түртумен бастаңыз, терезелерден іздеуді доғарыңыз.",
-      },
-    ],
   },
   download: {
     badge: "Қолжетімді",
