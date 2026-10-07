@@ -70,7 +70,7 @@ export default function App() {
         <UseCasesSection />
         <DownloadSection />
       </main>
-      <Footer />
+      <Footer reveal />
       <Analytics />
     </>
   );
