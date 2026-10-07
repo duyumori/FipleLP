@@ -15,21 +15,24 @@ import { MacShowcase } from "./sections/MacShowcase";
 import { ProductSection } from "./sections/ProductSection";
 import { UseCasesSection } from "./sections/UseCasesSection";
 
+const sectionIds = {
+  how: "how",
+  mac: "mac",
+  product: "product",
+} as const;
+
 export default function App() {
   const route = useRoute();
   const { lang } = useLang();
 
   useEffect(() => {
-    // Run after the browser's own anchor handling so it doesn't get overridden.
     const id = requestAnimationFrame(() => {
-      if (route !== "home") {
+      const sectionId = sectionIds[route as keyof typeof sectionIds];
+      if (sectionId) {
+        document.getElementById(sectionId)?.scrollIntoView();
+      } else if (route !== "home") {
         window.scrollTo(0, 0);
         return;
-      }
-      // On home: honor any section anchor, otherwise land at the top.
-      const hash = window.location.hash;
-      if (hash) {
-        document.getElementById(hash.slice(1))?.scrollIntoView();
       } else {
         window.scrollTo(0, 0);
       }
@@ -46,7 +49,7 @@ export default function App() {
     );
   }
 
-  if (route !== "home") {
+  if (route === "privacy" || route === "terms" || route === "support") {
     return (
       <>
         <LegalPage doc={legalDocs[lang][route]} />

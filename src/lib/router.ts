@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 
-export type Route = "home" | "privacy" | "terms" | "support" | "download";
+export type Route = "home" | "how" | "mac" | "product" | "privacy" | "terms" | "support" | "download";
 
 const pathMap: Record<string, Route> = {
+  "/how": "how",
+  "/mac": "mac",
+  "/product": "product",
   "/privacy": "privacy",
   "/terms": "terms",
   "/support": "support",
@@ -15,18 +18,12 @@ function parse(): Route {
   return pathMap[window.location.pathname] ?? "home";
 }
 
-/**
- * Client-side navigation. `to` may be a clean path ("/privacy"), a path with an
- * anchor ("/#how"), or a bare anchor ("#how"). Uses the History API so URLs stay
- * clean (no "#/") and refreshes/links resolve to the same page.
- */
 export function navigate(to: string) {
   const target = new URL(to, window.location.origin);
-  const next = target.pathname + target.hash;
-  const current = window.location.pathname + window.location.hash;
+  const next = target.pathname;
+  const current = window.location.pathname;
 
   if (next === current) {
-    if (target.hash) document.getElementById(target.hash.slice(1))?.scrollIntoView();
     return;
   }
 
@@ -46,8 +43,7 @@ export function useRoute(): Route {
     window.addEventListener("popstate", sync);
     window.addEventListener(ROUTE_EVENT, sync);
 
-    // Intercept internal link clicks so page paths and in-page #anchors route on
-    // the client — no full reload, clean URLs.
+    // Intercept internal links so navigation stays client-side.
     function onClick(e: MouseEvent) {
       if (e.defaultPrevented || isModifiedClick(e)) return;
       const anchor = (e.target as HTMLElement | null)?.closest("a");
@@ -61,12 +57,7 @@ export function useRoute(): Route {
       if (href.startsWith("/")) {
         e.preventDefault();
         navigate(href);
-      } else if (href.startsWith("#") && window.location.pathname !== "/") {
-        // In-page anchor clicked from a legal page → go home, then scroll there.
-        e.preventDefault();
-        navigate("/" + href);
       }
-      // In-page #anchors while already on home: let the browser scroll natively.
     }
 
     document.addEventListener("click", onClick);
