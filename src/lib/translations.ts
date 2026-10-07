@@ -44,20 +44,6 @@ const en = {
     titleLine2: "Run it from your pocket.",
     subtitle:
       "Build your workspaces and Fiple Bar on the big screen. Everything you arrange here is instantly tappable on your iPhone.",
-    callouts: [
-      {
-        title: "Workspaces",
-        body: "Group the apps and sites you open together. Run the whole set with one tap.",
-      },
-      {
-        title: "Fiple Bar",
-        body: "Pin single apps like Telegram, VS Code, Claude, and ChatGPT for instant one-tap launches.",
-      },
-      {
-        title: "Devices",
-        body: "Your paired iPhone shows up live as Connected. Pair, unpair, and manage it from one place.",
-      },
-    ],
   },
   product: {
     eyebrow: "What Fiple does",
@@ -182,20 +168,6 @@ const ru: typeof en = {
     titleLine2: "Запускайте из кармана.",
     subtitle:
       "Собирайте рабочие пространства и Fiple Bar на большом экране. Всё, что вы здесь настроите, мгновенно доступно по тапу на iPhone.",
-    callouts: [
-      {
-        title: "Рабочие пространства",
-        body: "Объедините приложения и сайты, которые открываете вместе. Запускайте весь набор одним тапом.",
-      },
-      {
-        title: "Fiple Bar",
-        body: "Закрепите отдельные приложения вроде Telegram, VS Code, Claude и ChatGPT для мгновенного запуска одним тапом.",
-      },
-      {
-        title: "Устройства",
-        body: "Подключённый iPhone отображается как Connected. Подключайте, отключайте и управляйте из одного места.",
-      },
-    ],
   },
   product: {
     eyebrow: "Что умеет Fiple",
@@ -320,20 +292,6 @@ const kz: typeof en = {
     titleLine2: "Қалтаңыздан іске қосыңыз.",
     subtitle:
       "Жұмыс кеңістіктері мен Fiple Bar-ды үлкен экранда жинаңыз. Мұнда баптағаныңыздың бәрі iPhone-да бір түртумен қолжетімді.",
-    callouts: [
-      {
-        title: "Жұмыс кеңістіктері",
-        body: "Бірге ашатын қосымшаларды және сайттарды топтаңыз. Бүкіл жиынтықты бір түртумен іске қосыңыз.",
-      },
-      {
-        title: "Fiple Bar",
-        body: "Telegram, VS Code, Claude, ChatGPT сияқты жеке қосымшаларды бекітіп, бір түртумен лезде іске қосыңыз.",
-      },
-      {
-        title: "Құрылғылар",
-        body: "Жұпталған iPhone тікелей Connected деп көрінеді. Бір жерден жұптаңыз, ажыратыңыз және басқарыңыз.",
-      },
-    ],
   },
   product: {
     eyebrow: "Fiple не істей алады",
