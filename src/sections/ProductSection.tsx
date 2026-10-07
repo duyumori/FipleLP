@@ -1,47 +1,30 @@
-import { AppWindow, Globe, LayoutGrid, Pin, SquareTerminal, Trash2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useT } from "../lib/i18n";
-
-const featureStyles: { Icon: LucideIcon; tint: string }[] = [
-  { Icon: AppWindow, tint: "bg-blueSoft text-blue" },
-  { Icon: Globe, tint: "bg-greenSoft text-green" },
-  { Icon: LayoutGrid, tint: "bg-blueSoft text-blue" },
-  { Icon: Pin, tint: "bg-greenSoft text-green" },
-  { Icon: Trash2, tint: "bg-blueSoft text-blue" },
-  { Icon: SquareTerminal, tint: "bg-greenSoft text-green" },
-];
+import { SectionRule, frame, h2, meta } from "../lib/ui";
 
 export function ProductSection() {
   const t = useT();
   return (
-    <section
-      className="mx-auto w-[min(1120px,calc(100%_-_40px))] scroll-mt-28 py-24 max-sm:w-[min(calc(100%_-_24px),1120px)] max-sm:py-16"
-      id="product"
-    >
-      <div className="max-w-[680px]">
-        <p className="font-mono text-[12px] font-medium tracking-[0.14em] text-blue uppercase">{t.product.eyebrow}</p>
-        <h2 className="mt-3 font-display text-[clamp(34px,4.6vw,54px)] leading-[1.02] font-bold tracking-[-0.035em] text-ink">
-          {t.product.title}
-        </h2>
-      </div>
+    <section className={`${frame} scroll-mt-20 pb-32 max-sm:pb-20`} id="product">
+      <SectionRule index="03" label={t.product.eyebrow} />
+      <h2 className={`${h2} mt-10 max-w-[1000px]`}>{t.product.title}</h2>
 
-      <div className="mt-12 grid grid-cols-3 gap-5 max-[860px]:grid-cols-2 max-sm:grid-cols-1">
-        {t.product.features.map(({ title, body }, i) => {
-          const { Icon, tint } = featureStyles[i];
-          return (
-            <article
-              key={i}
-              className="group rounded-2xl border border-line bg-white/70 p-6 shadow-card backdrop-blur-sm transition hover:-translate-y-1 hover:border-blue/30 hover:shadow-lift"
-            >
-              <span className={`grid size-11 place-items-center rounded-xl ${tint} transition group-hover:scale-105`}>
-                <Icon size={20} strokeWidth={2} />
-              </span>
-              <h3 className="mt-5 font-display text-[21px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
-              <p className="mt-2 text-[15.5px] leading-[1.55] text-muted">{body}</p>
-            </article>
-          );
-        })}
-      </div>
+      {/* Editorial index instead of a card grid: one hairline row per capability */}
+      <ul className="mt-16 border-b border-ink/15 max-sm:mt-10">
+        {t.product.features.map(({ title, body }, i) => (
+          <li
+            key={i}
+            className="group grid grid-cols-12 items-baseline gap-x-6 gap-y-2 border-t border-ink/15 py-8 max-sm:py-6"
+          >
+            <span className={`${meta} col-span-1 text-muted max-[940px]:col-span-12`}>{String(i + 1).padStart(2, "0")}</span>
+            <h3 className="col-span-5 font-display text-[clamp(28px,3.2vw,46px)] leading-[1] font-light tracking-[-0.02em] text-ink transition-colors duration-300 group-hover:text-muted max-[940px]:col-span-12">
+              {title}
+            </h3>
+            <p className="col-span-5 col-start-8 max-w-[520px] text-[17px] leading-[1.45] font-light text-ink2 max-[940px]:col-span-12 max-[940px]:col-start-1 max-sm:text-[16px]">
+              {body}
+            </p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
