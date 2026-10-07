@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: What to run
+        type: choice
+        options: [all, unit, e2e]
+        default: all
+      url:
+        description: Run e2e against this deployed URL instead of a local build (e.g. https://fiple.app)
+        type: string
+        required: false
+  deployment_status:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.deployment.id || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  VITE_SUPABASE_URL: https://ci.supabase.co
+  VITE_SUPABASE_ANON_KEY: ci-anon-key
+
+jobs:
+  checks:
+    name: Typecheck, lint, unit tests, build
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.suite != 'e2e' && inputs.url == '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  e2e:
+    name: E2E (local production build)
+    needs: checks
+    if: |
+      always() && inputs.url == '' &&
+      (needs.checks.result == 'success' ||
+       (needs.checks.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.suite == 'e2e'))
+      && (github.event_name != 'workflow_dispatch' || inputs.suite != 'unit')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup-playwright
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-local
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  e2e-live:
+    name: E2E (${{ inputs.url || github.event.deployment_status.environment_url || 'deployed site' }})
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.url != '') ||
+      (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_BASE_URL: ${{ inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup-playwright
+
+      - name: E2E tests against ${{ env.E2E_BASE_URL }}
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-live
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
