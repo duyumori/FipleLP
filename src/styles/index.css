@@ -157,6 +157,11 @@ textarea:focus-visible {
   footer [data-foot-flat] {
     display: block;
   }
+  /* The veil still marks "dark here" for the header's text flip (the header checks its
+     computed opacity), but must not paint over the flat panel. */
+  footer [data-header-dark] {
+    background: transparent !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
