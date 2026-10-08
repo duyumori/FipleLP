@@ -72,7 +72,11 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const apply = () => {
       const veil = 1 - smooth(0, 1, veilP);
       if (veilRef.current) {
-        veilRef.current.style.opacity = String(veil);
+        // Phones: underneath the veil the surface is a frozen still frame, so a full-opacity
+        // curtain reads as a flat black slab rising from the bottom of the screen. Cap the
+        // curtain at 40% on coarse pointers — the footer surfaces soft, never as a black block.
+        // Desktop keeps the full dissolve (the live surface shows through it).
+        veilRef.current.style.opacity = String(fine ? veil : veil * 0.4);
         veilRef.current.style.visibility = veil < 0.01 ? "hidden" : "visible";
       }
       const frameIn = smooth(0, 1, frameP);
