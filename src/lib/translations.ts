@@ -38,6 +38,14 @@ const en = {
       },
     ],
   },
+  demo: {
+    eyebrow: "In action",
+    titleLine1: "One tap on the iPhone.",
+    titleLine2: "The Mac does the rest.",
+    caption: "Real footage, no cuts: enter the code once, then a single tap opens your whole workspace.",
+    watch: "Watch the full demo",
+    close: "Close",
+  },
   mac: {
     eyebrow: "The Mac app",
     titleLine1: "Set it up on your Mac.",
@@ -148,6 +156,14 @@ const ru: typeof en = {
       },
     ],
   },
+  demo: {
+    eyebrow: "В деле",
+    titleLine1: "Одно касание на iPhone.",
+    titleLine2: "Остальное сделает Mac.",
+    caption: "Реальная съёмка без монтажа: один раз ввели код — дальше одно касание открывает всё рабочее пространство.",
+    watch: "Смотреть демо целиком",
+    close: "Закрыть",
+  },
   mac: {
     eyebrow: "Приложение для Mac",
     titleLine1: "Настройте на Mac.",
@@ -257,6 +273,14 @@ const kz: typeof en = {
         body: "Бүкіл жұмыс кеңістігін немесе Fiple Bar-дан бір қосымшаны іске қосыңыз. Терезесіз, доксыз, Cmd-Tab-сыз.",
       },
     ],
+  },
+  demo: {
+    eyebrow: "Іс жүзінде",
+    titleLine1: "iPhone-да бір түрту.",
+    titleLine2: "Қалғанын Mac жасайды.",
+    caption: "Монтажсыз нақты түсірілім: кодты бір рет енгізесіз — кейін бір түрту бүкіл жұмыс кеңістігін ашады.",
+    watch: "Толық демоны көру",
+    close: "Жабу",
   },
   mac: {
     eyebrow: "Mac қосымшасы",
