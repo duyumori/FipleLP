@@ -12,6 +12,10 @@ if (!rootElement) {
 if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
+const SECTION_PATHS = ["/how", "/mac", "/product"];
+if (SECTION_PATHS.includes(window.location.pathname) || (window.location.pathname === "/" && window.location.hash)) {
+  history.replaceState(null, "", "/");
+}
 window.scrollTo(0, 0);
 
 createRoot(rootElement).render(

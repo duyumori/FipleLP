@@ -4,9 +4,11 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { legalDocs } from "./data/legal";
 import { useLang } from "./lib/i18n";
+import { useScrollFx } from "./lib/scrollFx";
 import { useRoute } from "./lib/router";
 import { DownloadPage } from "./pages/DownloadPage";
 import { LegalPage } from "./pages/LegalPage";
+import { DemoSection } from "./sections/DemoSection";
 import { DownloadSection } from "./sections/DownloadSection";
 import { HeroSection } from "./sections/HeroSection";
 import { HowItWorksSection } from "./sections/HowItWorksSection";
@@ -23,6 +25,8 @@ const sectionIds = {
 export default function App() {
   const route = useRoute();
   const { lang } = useLang();
+  // Reveal / brighten / zoom effects on the inner pages; re-scan when the page or language changes.
+  useScrollFx(`${route}:${lang}`);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -62,10 +66,16 @@ export default function App() {
       <Header />
       <main>
         <HeroSection />
-        <HowItWorksSection />
-        <MacShowcase />
-        <ProductSection />
-        <UseCasesSection />
+        {/* Dark inner pages. Tucked 150svh under the hero's pinned track: the hero ends by opening
+            a hole in the crater, and these pages are what shows through it (as on topology.vc).
+            The manifesto comes first — it pins dead-centre while the hole opens. */}
+        <div className="theme-dark relative -mt-[150svh]" data-header-dark>
+          <UseCasesSection />
+          <DemoSection />
+          <HowItWorksSection />
+          <MacShowcase />
+          <ProductSection />
+        </div>
         <DownloadSection />
       </main>
       <Footer reveal />

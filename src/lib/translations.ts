@@ -55,7 +55,7 @@ const en = {
   },
   product: {
     eyebrow: "What Fiple does",
-    title: "Anything on your Mac, one tap away on your iPhone.",
+    title: "More than a launcher.",
     features: [
       { title: "Apps", body: "Launch any Mac app the instant you tap it, with no Dock or Cmd-Tab." },
       { title: "Websites", body: "Open your saved sites and dashboards straight in your browser." },
@@ -173,7 +173,7 @@ const ru: typeof en = {
   },
   product: {
     eyebrow: "Что умеет Fiple",
-    title: "Что угодно на вашем Mac в одном тапе на iPhone.",
+    title: "Больше, чем лаунчер.",
     features: [
       { title: "Приложения", body: "Запускайте любое приложение Mac в момент тапа, без дока и Cmd-Tab." },
       { title: "Сайты", body: "Открывайте сохранённые сайты и дашборды прямо в браузере." },
@@ -291,7 +291,7 @@ const kz: typeof en = {
   },
   product: {
     eyebrow: "Fiple не істей алады",
-    title: "Mac-тағы кез келген нәрсе iPhone-да бір түртуде.",
+    title: "Лаунчерден де көп.",
     features: [
       { title: "Қосымшалар", body: "Кез келген Mac қосымшасын түрткен сәтте іске қосыңыз, доксыз әрі Cmd-Tab-сыз." },
       { title: "Сайттар", body: "Сақталған сайттарыңыз бен дашбордтарды тікелей браузерде ашыңыз." },

@@ -58,8 +58,8 @@ export function DownloadSection() {
 
   return (
     <section className={`${frame} scroll-mt-20 bg-ink pt-6 pb-14 text-white max-sm:pb-12`} id="download" data-header-dark>
-      <SectionRule index="05" label={t.download.badge} dark />
-      <div className="mt-24 grid grid-cols-12 items-end gap-x-6 gap-y-10 max-sm:mt-16">
+      <SectionRule index="04" label={t.download.badge} dark bare />
+      <div className="mt-12 grid grid-cols-12 items-end gap-x-6 gap-y-10 max-sm:mt-10">
         <h2 className="col-span-8 font-display text-[clamp(48px,6.2vw,100px)] leading-[0.92] font-light tracking-[-0.03em] text-balance text-white max-[940px]:col-span-12">
           {t.download.title}
         </h2>
@@ -87,7 +87,7 @@ export function DownloadSection() {
       </div>
 
       {/* Email updates — secondary, so it sits under a hairline as a quiet single row */}
-      <div className="mt-24 grid grid-cols-12 items-center gap-x-6 gap-y-4 border-t border-white/20 pt-6 max-sm:mt-16">
+      <div className="mt-16 grid grid-cols-12 items-center gap-x-6 gap-y-4 border-t border-white/20 pt-6 max-sm:mt-12">
         <p
           className={`col-span-6 flex items-center gap-1.5 text-[15px] font-light max-[940px]:col-span-12 ${
             submitState === "error" ? "text-white" : success ? "text-white" : "text-white/55"
