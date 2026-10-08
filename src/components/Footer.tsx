@@ -150,16 +150,21 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
               <span className="font-display text-[40px] leading-none font-light tracking-[-0.02em]">Fiple</span>
             </a>
 
+            {/* Two columns: the product pages, then support and legal */}
             <nav
-              className={`col-span-4 col-start-7 grid content-start gap-2 text-white/85 ${meta} text-[12px] max-[940px]:col-span-8 max-[940px]:col-start-1`}
+              className={`col-span-5 col-start-6 grid grid-cols-2 gap-x-6 gap-y-2 text-white/85 ${meta} text-[12px] max-[940px]:col-span-8 max-[940px]:col-start-1 max-sm:grid-cols-1 max-sm:gap-y-8`}
               aria-label="Footer"
             >
-              <a className={link} href="/how">{t.header.navHow}</a>
-              <a className={link} href="/mac">{t.header.navMac}</a>
-              <a className={link} href="/product">{t.header.navProduct}</a>
-              <a className={link} href="/support">{t.footer.legalSupport}</a>
-              <a className={link} href="/privacy">{t.footer.legalPrivacy}</a>
-              <a className={link} href="/terms">{t.footer.legalTerms}</a>
+              <div className="grid content-start gap-2">
+                <a className={link} href="/how">{t.header.navHow}</a>
+                <a className={link} href="/mac">{t.header.navMac}</a>
+                <a className={link} href="/product">{t.header.navProduct}</a>
+              </div>
+              <div className="grid content-start gap-2">
+                <a className={link} href="/support">{t.footer.legalSupport}</a>
+                <a className={link} href="/privacy">{t.footer.legalPrivacy}</a>
+                <a className={link} href="/terms">{t.footer.legalTerms}</a>
+              </div>
             </nav>
 
             <div className="col-span-2 col-start-11 flex justify-end gap-4 self-start text-white/75 max-[940px]:col-span-4 max-[940px]:col-start-9">
