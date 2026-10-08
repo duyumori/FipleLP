@@ -55,13 +55,13 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fine = window.matchMedia("(pointer: fine)").matches;
 
-    // Phones get the simple version: no entry animation at all. The black curtain right
-    // before it dissolves into a frozen frame looks like a slab sliding up, and the frame
-    // rise adds nothing on a static surface — both render settled, permanently.
+    // Phones get the simple version: no entry animation at all. The veil stays as a DOM
+    // marker for the header's dark-text flip but paints nothing (coarse CSS makes its
+    // background transparent) — the flat panel below carries the visuals.
     if (!fine) {
       if (veilRef.current) {
-        veilRef.current.style.opacity = "0";
-        veilRef.current.style.visibility = "hidden";
+        veilRef.current.style.opacity = "1";
+        veilRef.current.style.visibility = "visible";
       }
       if (frameRef.current) {
         frameRef.current.style.opacity = "1";
