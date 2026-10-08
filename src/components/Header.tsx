@@ -8,12 +8,9 @@ const navLink = "transition hover:opacity-60";
 
 export function Header() {
   const t = useT();
-  // Always flat and transparent — no fill on scroll. Over dark zones the text flips to light.
   const [onDark, setOnDark] = useState(false);
   useEffect(() => {
-    const onScroll = () => {
-      // Light text over any dark zone under the header: the download band, and the footer's
-      // black veil while it is still mostly opaque.
+    const check = () => {
       const zones = document.querySelectorAll<HTMLElement>("[data-header-dark]");
       setOnDark(
         [...zones].some((z) => {
@@ -22,9 +19,22 @@ export function Header() {
         }),
       );
     };
-    onScroll();
+    let raf = 0;
+    let settle = 0;
+    const onScroll = () => {
+      check();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => (raf = requestAnimationFrame(check)));
+      window.clearTimeout(settle);
+      settle = window.setTimeout(check, 250);
+    };
+    check();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(settle);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   return (
@@ -33,6 +43,14 @@ export function Header() {
         onDark ? "text-white" : "text-ink"
       }`}
     >
+      {/* Over dark pages: a soft fade from the page colour, so headings slide under the nav
+          instead of colliding with it (no solid bar — it stays visually transparent) */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-[120%] bg-gradient-to-b from-[#111111] via-[#111111]/80 to-transparent transition-opacity duration-300 ${
+          onDark ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden="true"
+      />
       <a className="flex items-center gap-2" href="/" aria-label="Fiple home">
         <img src={icon} alt="" className="size-7 drop-shadow-[0_3px_6px_rgba(16,15,15,0.25)]" width={28} height={28} />
         <span className="font-display text-[22px] font-normal tracking-[-0.02em]">Fiple</span>

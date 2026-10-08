@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
 /** Live scene state the hero writes every frame (already smoothed). */
-export type HeroMotion = { p: number; mx: number; my: number };
+export type HeroMotion = {
+  p: number;
+  mx: number;
+  my: number;
+  /** 0..1 — a see-through hole opens in the crater's centre and widens to the full screen (scene exit). */
+  dark?: number;
+};
 
 // Animated "contour terraces" behind the hero: a slowly breathing elliptical crater
 // sliced into steps, each step edge shaded and rimmed with a sheen.
@@ -122,6 +128,7 @@ uniform float uSimH;     // sim height in texels (velocity → screen units)
 uniform vec4 uRest;      // resting pose: centre.xy, tilt angle, squash
 uniform float uSeed;     // shifts the noise so another instance gets its own shape
 uniform float uFadeBottom; // 1 = fade the bottom edge out into the page, 0 = full bleed
+uniform float uDark;     // 0..1 — see-through hole opening from the centre (scene exit)
 out vec4 outColor;
 
 const vec3 BASE  = vec3(0.976, 0.976, 0.965); // #f9f9f6
@@ -215,9 +222,21 @@ void main() {
 
   vec3 col = BASE * (1.0 - shadow * mask) + highlight * mask;
   col = mix(col, sheen, clamp(rim * mix(0.6, 0.85, sp) * mask * (0.6 + 0.6 * mix(uv.y, 0.7, sp)), 0.0, 0.85));
+  // Scene exit: a hole opens in the crater's centre and widens until it fills the screen.
+  // It is transparent — the page tucked underneath shows through it (as on topology.vc).
+  // Its edge rides the warped coordinates, so the cursor's fluid ripples it.
+  float hole = 0.0;
+  if (uDark > 0.0) {
+    float r = length((p - vec2(0.0, -0.02)) * vec2(0.62, 1.0));
+    float edge = uDark * 1.35;
+    hole = max(1.0 - smoothstep(edge - 0.16, edge, r), smoothstep(0.9, 1.0, uDark));
+    // a soft shade just outside the rim, so the hole reads as a depression in the surface
+    col *= 1.0 - 0.35 * (1.0 - smoothstep(edge, edge + 0.18, r)) * step(0.001, uDark);
+  }
   col += (hash(gl_FragCoord.xy + fract(t) * 91.0) - 0.5) * 0.02; // film grain
 
-  outColor = vec4(col * bottomFade, bottomFade);
+  float alpha = bottomFade * (1.0 - hole);
+  outColor = vec4(col * alpha, alpha);
 }`;
 
 // ---- Fluid tuning -----------------------------------------------------------------------------
@@ -461,6 +480,7 @@ export function HeroBackdrop({
       gl.uniform4f(surface.u("uRest"), pose.center[0], pose.center[1], pose.angle, pose.squash);
       gl.uniform1f(surface.u("uSeed"), pose.seed);
       gl.uniform1f(surface.u("uFadeBottom"), pose.fadeBottom ? 1 : 0);
+      gl.uniform1f(surface.u("uDark"), m?.dark ?? 0);
       gl.uniform1i(surface.u("uVelocity"), bindTex(0, sim ? sim.vel.get().read.tex : still.tex));
       blit(null);
     };

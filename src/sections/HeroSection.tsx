@@ -14,12 +14,15 @@ const smooth = (a: number, b: number, x: number) => {
 };
 
 // Scroll timeline (0..1 across the pinned track): the intro leaves, the phone gets its own
-// beat in the centre, then each phrase gets a window. The last phrase stays until the pin ends.
+// beat in the centre, then each phrase gets a window. Then, as on topology.vc, a hole opens in
+// the crater's centre and widens until it fills the screen — through it you see the dark inner
+// pages, which are tucked underneath this track (see the .theme-dark wrapper in App.tsx).
 const INTRO_OUT = 0.1;
 const PHONE_START = 0.07;
 const PHONE_SPAN = 0.27;
 const SCENE_START = 0.34;
-const SCENE_SPAN = 0.21;
+const SCENE_SPAN = 0.19;
+const DARK: [number, number] = [0.86, 1.0]; // the hole widens over the last stretch of the pin
 
 // Rhythm: a full-screen frame with 24px gutters — just the oversized light headline anchored
 // bottom-left with one short line + CTA under it; the live surface gets the rest of the screen.
@@ -30,6 +33,8 @@ export function HeroSection() {
   const phoneRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const phraseRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const darkRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLElement>(null);
   const motion = useRef<HeroMotion>({ p: 0, mx: 0, my: 0 });
 
   useEffect(() => {
@@ -50,6 +55,7 @@ export function HeroSection() {
       return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 0;
     };
 
+    let rawP = scrollProgress();
     const apply = () => {
       const { p, mx, my } = motion.current;
 
@@ -79,13 +85,28 @@ export function HeroSection() {
       }
       if (titleRef.current) titleRef.current.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
 
-      // Phrases swap in the centre: rise + unblur in, lift + blur out.
+      // Exit: the see-through hole (drawn by the shader) grows from 0 to full screen. Driven by the
+      // raw (unsmoothed) progress too, so a fast scroll can never unpin the hero half-open.
+      const dark = smooth(DARK[0], DARK[1], Math.max(p, rawP));
+      motion.current.dark = dark;
+      // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
+      const stage = stageRef.current;
+      if (stage) {
+        stage.style.visibility = dark > 0.995 ? "hidden" : "visible";
+        stage.style.pointerEvents = dark > 0.5 ? "none" : "";
+      }
+      // Invisible marker the header reads to flip to light text once the dark page dominates.
+      // Raw progress only: the smoothed value lags, and the header samples this on scroll events,
+      // so a lagging value could leave the header stuck in its light-text mode back at the top.
+      if (darkRef.current) darkRef.current.style.opacity = String(smooth(DARK[0], DARK[1], rawP));
+
+      // Phrases swap in the centre: rise + unblur in, lift + blur out. The last one sinks into the hole.
       const last = phraseRefs.current.length - 1;
       phraseRefs.current.forEach((el, i) => {
         if (!el) return;
         const local = (p - (SCENE_START + i * SCENE_SPAN)) / SCENE_SPAN;
         const fadeIn = smooth(0, 0.3, local);
-        const fadeOut = i === last ? 0 : smooth(0.7, 1, local);
+        const fadeOut = i === last ? smooth(DARK[0], DARK[0] + 0.05, p) : smooth(0.7, 1, local);
         const o = fadeIn * (1 - fadeOut);
         if (o < 0.01) {
           // Off-stage phrases: hide once and skip the per-frame transform/blur writes.
@@ -106,7 +127,8 @@ export function HeroSection() {
     let raf = 0;
     const tick = () => {
       const m = motion.current;
-      m.p += (scrollProgress() - m.p) * (reduced ? 1 : 0.12);
+      rawP = scrollProgress();
+      m.p += (rawP - m.p) * (reduced ? 1 : 0.12);
       m.mx += (target.mx - m.mx) * 0.06;
       m.my += (target.my - m.my) * 0.06;
       apply();
@@ -130,9 +152,10 @@ export function HeroSection() {
 
   return (
     // Tall scroll track; the screen inside stays pinned while the scene plays.
-    <div ref={trackRef} className="relative h-[440svh]" id="top">
-      <section className="sticky top-0 isolate flex h-svh flex-col overflow-hidden">
+    <div ref={trackRef} className="relative z-10 h-[480svh]" id="top">
+      <section ref={stageRef} className="sticky top-0 isolate flex h-svh flex-col overflow-hidden">
         <HeroBackdrop motion={motion} className="absolute inset-0 -z-10 h-full w-full" />
+        <div ref={darkRef} className="pointer-events-none absolute inset-0 opacity-0" data-header-dark aria-hidden="true" />
 
         {/* Intro screen: copy bottom-left, the live surface everywhere else */}
         <div
