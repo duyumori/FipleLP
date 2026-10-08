@@ -1,0 +1,19 @@
+name: Setup Playwright
+description: Install (and cache) Chromium for Playwright
+runs:
+  using: composite
+  steps:
+    - id: pw
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+    - id: cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npx playwright install --with-deps chromium
+    - if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: npx playwright install-deps chromium
