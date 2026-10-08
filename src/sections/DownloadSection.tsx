@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Apple, Check, Download } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL, MAC_DOWNLOAD_URL } from "../lib/links";
 import { SectionRule, frame, meta } from "../lib/ui";
@@ -30,7 +30,7 @@ export function DownloadSection() {
     setStatusKey("adding");
 
     try {
-      const { error } = await supabase.from("waitlist").insert({ email });
+      const { error } = await getSupabase().from("waitlist").insert({ email });
 
       if (error) {
         if (error.code === "23505") {
