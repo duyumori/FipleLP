@@ -1,6 +1,35 @@
 @config "../../tailwind.config.js";
 @import "tailwindcss";
 
+/* Colour tokens (see tailwind.config.js). `.theme-dark` flips them for the dark inner pages. */
+:root {
+  --c-ink: #111111;
+  --c-ink2: #2a2a2f;
+  --c-muted: #6e6c67;
+  --c-faint: #a19f97;
+  --c-line: #ebe9e1;
+  --c-line2: #f2f1ec;
+  --c-base: #f9f9f6;
+  --c-base2: #f0eee6;
+  --c-surface: #ffffff;
+}
+
+.theme-dark {
+  /* Neutral greys (0% saturation) like topology's #151515 — the earlier warm set read brown.
+     Only the text keeps the faintest warmth. */
+  --c-ink: #ececea;
+  --c-ink2: #cdcdcd;
+  --c-muted: #8c8c8c;
+  --c-faint: #5f5f5f;
+  --c-line: #2a2a2a;
+  --c-line2: #1c1c1c;
+  --c-base: #111111;
+  --c-base2: #1b1b1b;
+  --c-surface: #181818;
+  background-color: #111111;
+  color: var(--c-ink);
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -8,7 +37,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  color: #100f0f;
+  color: #111111;
   background-color: #f9f9f6;
   font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -23,6 +52,10 @@ body {
  */
 .font-display {
   font-synthesis-weight: none;
+  /* Only Noto (the Cyrillic fallback) has a width axis; condensed + light, it matches the
+     narrow, airy Instrument Serif. Instrument itself ignores both. */
+  font-stretch: 72%;
+  font-weight: 300;
   letter-spacing: -0.015em;
   line-height: 1.04;
 }
@@ -32,7 +65,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #100f0f;
+  outline: 2px solid #111111;
   outline-offset: 2px;
 }
 
