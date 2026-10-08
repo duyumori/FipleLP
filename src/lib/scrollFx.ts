@@ -14,6 +14,7 @@ const smooth = (x: number) => x * x * (3 - 2 * x);
 export function useScrollFx(key: unknown) {
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
     const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
     const io = new IntersectionObserver(
@@ -30,17 +31,17 @@ export function useScrollFx(key: unknown) {
 
     const brights = [...document.querySelectorAll<HTMLElement>("[data-brighten]")];
     const zooms = [...document.querySelectorAll<HTMLElement>("[data-zoom]")];
-    if (reduced) {
-      // No scroll tracking: settle everything into its final state once.
+    if (reduced || coarse) {
+      // No scroll tracking on reduced motion or phones: settle everything into its final
+      // state once. On phones the per-frame opacity/scale writes on screen-sized headings
+      // and media wrappers are the dominant whole-page scroll jank, and the reveal
+      // transitions (dozens of staggered word spans) compound it — the mobile entry is
+      // plain statics, CSS forces the final state on the reveal elements.
+      reveals.forEach((el) => el.classList.add("is-in"));
       brights.forEach((el) => (el.style.opacity = "1"));
       zooms.forEach((el) => (el.style.transform = ""));
       return () => io.disconnect();
     }
-    // Touch devices: continuous scale on the media wrappers forces a full re-raster of a
-    // screen-sized layer every scroll frame — the dominant whole-page jank on phones.
-    // Zoom stays desktop-only; headings keep the light-up but quantised (20 steps), so
-    // the text re-raster fires on threshold crossings instead of every frame.
-    const coarse = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     let raf = 0;
     const update = () => {
       raf = 0;
@@ -51,15 +52,12 @@ export function useScrollFx(key: unknown) {
       const zoomTops = zooms.map((el) => el.getBoundingClientRect().top);
       brights.forEach((el, i) => {
         const x = clamp01((ih * 0.95 - brightTops[i]) / (ih * 0.5));
-        const v = 0.16 + 0.84 * smooth(x);
-        el.style.opacity = String(coarse ? Math.round(v * 20) / 20 : v);
+        el.style.opacity = String(0.16 + 0.84 * smooth(x));
       });
-      if (!coarse) {
-        zooms.forEach((el, i) => {
-          const x = clamp01((ih - zoomTops[i]) / (ih * 0.8));
-          el.style.transform = `scale(${0.92 + 0.08 * smooth(x)})`;
-        });
-      }
+      zooms.forEach((el, i) => {
+        const x = clamp01((ih - zoomTops[i]) / (ih * 0.8));
+        el.style.transform = `scale(${0.92 + 0.08 * smooth(x)})`;
+      });
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
