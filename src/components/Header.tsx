@@ -21,12 +21,16 @@ export function Header() {
     };
     let raf = 0;
     let settle = 0;
+    // One rAF-throttled check per scroll burst — the old version ran the forced-layout
+    // check synchronously on every scroll event *and* on a double rAF *and* on a timer.
     const onScroll = () => {
-      check();
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => (raf = requestAnimationFrame(check)));
+      if (!raf) raf = requestAnimationFrame(() => ((raf = 0), check()));
+      // Re-check after the eased values (footer veil, etc.) have converged too.
       window.clearTimeout(settle);
-      settle = window.setTimeout(check, 250);
+      settle = window.setTimeout(() => {
+        check();
+        settle = window.setTimeout(check, 450);
+      }, 250);
     };
     check();
     window.addEventListener("scroll", onScroll, { passive: true });
