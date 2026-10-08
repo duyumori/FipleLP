@@ -73,9 +73,11 @@ export function HeroSection() {
         phoneEl.style.visibility = o < 0.01 ? "hidden" : "visible";
         if (o >= 0.01) {
           const y = (1 - pin) * 45 - pout * 35; // in vh
-          phoneEl.style.transform =
-            `translate3d(${mx * 14}px, calc(${y}vh + ${my * 10}px), 0) ` +
-            `perspective(1400px) rotateY(${mx * 9}deg) rotateX(${-my * 7}deg) scale(${0.9 + pin * 0.1})`;
+          // Cursor tilt is desktop-only; on touch the 3D perspective + rotate force a
+          // re-raster of the big screenshot layer on every frame — plain translate/core scale.
+          phoneEl.style.transform = finePointer
+            ? `translate3d(${mx * 14}px, calc(${y}vh + ${my * 10}px), 0) perspective(1400px) rotateY(${mx * 9}deg) rotateX(${-my * 7}deg) scale(${0.9 + pin * 0.1})`
+            : `translate3d(0, calc(${y}vh), 0) scale(${0.9 + pin * 0.1})`;
         }
       }
       if (titleRef.current) titleRef.current.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
