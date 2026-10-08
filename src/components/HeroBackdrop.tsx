@@ -507,6 +507,7 @@ export function HeroBackdrop({
     let last = 0;
     let drawnP = Number.NaN;
     let drawnDark = Number.NaN;
+    let drawnAt = -Infinity;
     const loop = (ms: number) => {
       const dt = Math.min((ms - (last || ms)) / 1000 || 1 / 60, 1 / 30);
       last = ms;
@@ -516,14 +517,17 @@ export function HeroBackdrop({
       } else {
         // Touch: the surface is a still frame (frozen clock — no breathing, no grain
         // flicker). Redraw only when the scroll scene actually changes it (progress /
-        // exit hole), so an idle phone screen costs zero GPU frames and scrolling stays
-        // smooth at 60fps with a 1× buffer.
+        // exit hole), and cap that at 30fps: during a fast scroll a 60fps re-draw of the
+        // shader competes with the compositor for GPU time, while the extra frames are
+        // masked by the scroll motion anyway. Dirty state is kept until drawn, so the
+        // final frame after scrolling stops always lands.
         const m = motion.current;
         const p = m?.p ?? 0;
         const dark = m?.dark ?? 0;
-        if (p !== drawnP || dark !== drawnDark) {
+        if ((p !== drawnP || dark !== drawnDark) && ms - drawnAt >= 33) {
           drawnP = p;
           drawnDark = dark;
+          drawnAt = ms;
           drawSurface(0);
         }
       }
