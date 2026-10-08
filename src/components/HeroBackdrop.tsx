@@ -488,11 +488,11 @@ export function HeroBackdrop({
     const resize = () => {
       // Desktop: full device resolution (capped at 2×) keeps the terrace lines crisp; the
       // expensive part, the fluid, runs on a small fixed grid regardless of screen size.
-      // Touch devices render at CSS pixels (1×) — the surface is a soft organic gradient
-      // where the extra DPR only burns fill-rate, and at 2× the pass alone saturates mobile
-      // GPUs. Skip no-op resizes: the mobile URL bar toggling fires ResizeObserver on every
+      // Touch devices render at 0.66× — a soft organic surface scaled to the screen:
+      // at 1× the pass alone saturates low-end mobile GPUs on every scroll frame.
+      // Skip no-op resizes: the mobile URL bar toggling fires ResizeObserver on every
       // scroll direction change.
-      const maxDpr = fine ? 2 : 1;
+      const maxDpr = fine ? 2 : 0.66;
       const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       const w = Math.round(canvas.clientWidth * dpr);
       const h = Math.round(canvas.clientHeight * dpr);
@@ -592,5 +592,5 @@ export function HeroBackdrop({
     };
   }, [motion, pose]);
 
-  return <canvas ref={ref} className={className} aria-hidden="true" />;
+  return <canvas ref={ref} className={className} data-backdrop aria-hidden="true" />;
 }
