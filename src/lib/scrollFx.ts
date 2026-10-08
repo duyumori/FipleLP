@@ -36,6 +36,11 @@ export function useScrollFx(key: unknown) {
       zooms.forEach((el) => (el.style.transform = ""));
       return () => io.disconnect();
     }
+    // Touch devices: continuous scale on the media wrappers forces a full re-raster of a
+    // screen-sized layer every scroll frame — the dominant whole-page jank on phones.
+    // Zoom stays desktop-only; headings keep the light-up but quantised (20 steps), so
+    // the text re-raster fires on threshold crossings instead of every frame.
+    const coarse = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     let raf = 0;
     const update = () => {
       raf = 0;
@@ -46,12 +51,15 @@ export function useScrollFx(key: unknown) {
       const zoomTops = zooms.map((el) => el.getBoundingClientRect().top);
       brights.forEach((el, i) => {
         const x = clamp01((ih * 0.95 - brightTops[i]) / (ih * 0.5));
-        el.style.opacity = String(0.16 + 0.84 * smooth(x));
+        const v = 0.16 + 0.84 * smooth(x);
+        el.style.opacity = String(coarse ? Math.round(v * 20) / 20 : v);
       });
-      zooms.forEach((el, i) => {
-        const x = clamp01((ih - zoomTops[i]) / (ih * 0.8));
-        el.style.transform = `scale(${0.92 + 0.08 * smooth(x)})`;
-      });
+      if (!coarse) {
+        zooms.forEach((el, i) => {
+          const x = clamp01((ih - zoomTops[i]) / (ih * 0.8));
+          el.style.transform = `scale(${0.92 + 0.08 * smooth(x)})`;
+        });
+      }
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);

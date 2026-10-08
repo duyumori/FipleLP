@@ -29,7 +29,9 @@ export function DemoSection() {
         if (e.isIntersecting && !open) v.play().catch(() => {});
         else v.pause();
       },
-      { threshold: 0.25 },
+      // 0.5: decoding a video while only a sliver of it is on screen just burns the
+      // phone's decoder during the scroll past this section — start at half visibility.
+      { threshold: 0.5 },
     );
     io.observe(v);
     return () => io.disconnect();
