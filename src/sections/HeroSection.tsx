@@ -44,11 +44,6 @@ export function HeroSection() {
     const finePointer = window.matchMedia("(pointer: fine)").matches;
 
     const target = { mx: 0, my: 0 };
-    const onPointer = (e: PointerEvent) => {
-      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
-      target.my = (e.clientY / window.innerHeight) * 2 - 1;
-    };
-    if (finePointer && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
 
     const scrollProgress = () => {
       const distance = track.offsetHeight - window.innerHeight;
@@ -118,26 +113,62 @@ export function HeroSection() {
         }
         el.style.opacity = String(o);
         el.style.transform = `translate3d(${mx * -10}px, ${(1 - fadeIn) * 40 - fadeOut * 40}px, 0)`;
-        el.style.filter = `blur(${(1 - o) * 10}px)`;
+        // filter is the most expensive per-frame write (it re-rasterises the text); only
+        // touch it when the value actually changed.
+        const blur = `blur(${(1 - o) * 10}px)`;
+        if (el.style.filter !== blur) el.style.filter = blur;
         el.style.visibility = "visible";
       });
     };
 
     // One loop: ease toward the real scroll/cursor position so everything glides.
+    // It parks itself as soon as everything has converged — on an idle phone screen
+    // (no scroll, no cursor) it burns zero frames instead of spinning at 60fps;
+    // scroll/resize/pointer/visibility wake it again.
     let raf = 0;
+    let visible = false;
     const tick = () => {
+      raf = 0;
       const m = motion.current;
       rawP = scrollProgress();
       m.p += (rawP - m.p) * (reduced ? 1 : 0.12);
       m.mx += (target.mx - m.mx) * 0.06;
       m.my += (target.my - m.my) * 0.06;
       apply();
-      raf = requestAnimationFrame(tick);
+      const settled =
+        Math.abs(rawP - m.p) < 0.0004 &&
+        Math.abs(target.mx - m.mx) < 0.002 &&
+        Math.abs(target.my - m.my) < 0.002;
+      if (!settled) raf = requestAnimationFrame(tick);
     };
+    const wake = () => {
+      if (visible && !raf && !document.hidden) raf = requestAnimationFrame(tick);
+    };
+    const onScroll = () => wake();
+    const onPointer = (e: PointerEvent) => {
+      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
+      target.my = (e.clientY / window.innerHeight) * 2 - 1;
+      wake();
+    };
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else wake();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    document.addEventListener("visibilitychange", onVis);
+    if (finePointer && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
+
     // Only spin while the track is on screen.
     const io = new IntersectionObserver(([entry]) => {
-      cancelAnimationFrame(raf);
-      raf = entry.isIntersecting ? requestAnimationFrame(tick) : 0;
+      visible = entry.isIntersecting;
+      if (visible) wake();
+      else {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
     });
     io.observe(track);
     motion.current.p = scrollProgress();
@@ -146,6 +177,9 @@ export function HeroSection() {
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pointermove", onPointer);
     };
   }, []);
