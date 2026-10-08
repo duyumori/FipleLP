@@ -121,6 +121,23 @@ textarea:focus-visible {
   filter: none;
 }
 
+/*
+ * Touch devices: no blur anywhere. Animating filter/backdrop-filter re-rasterises large
+ * areas every frame and is the dominant scroll-jank source on phones (large reveal text,
+ * the demo pill over the video, sticky bars). Fades and rises stay — they're composited.
+ */
+@media (hover: none) and (pointer: coarse) {
+  [data-reveal],
+  [data-reveal="words"] .w {
+    filter: none !important;
+    transition-property: opacity, transform;
+  }
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-reveal],
   [data-reveal="words"] .w {
