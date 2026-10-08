@@ -1,47 +1,63 @@
-import { AppWindow, Globe, LayoutGrid, Pin, SquareTerminal, Trash2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type React from "react";
+import appSmartTrash from "../assets/app-smart-trash.webp";
+import appTerminal from "../assets/app-terminal.webp";
 import { useT } from "../lib/i18n";
+import { Bracket, SectionRule, frame, h2, monoBody } from "../lib/ui";
 
-const featureStyles: { Icon: LucideIcon; tint: string }[] = [
-  { Icon: AppWindow, tint: "bg-blueSoft text-blue" },
-  { Icon: Globe, tint: "bg-greenSoft text-green" },
-  { Icon: LayoutGrid, tint: "bg-blueSoft text-blue" },
-  { Icon: Pin, tint: "bg-greenSoft text-green" },
-  { Icon: Trash2, tint: "bg-blueSoft text-blue" },
-  { Icon: SquareTerminal, tint: "bg-greenSoft text-green" },
+// Only the two extras get this section: the launching basics (apps, sites, workspaces, the
+// Fiple Bar) are already shown above — in the film, the setup steps and the Mac app screenshot.
+// `feature` is an index into t.product.features.
+const EXTRAS: { feature: number; src: string; alt: string }[] = [
+  { feature: 4, src: appSmartTrash, alt: "Smart Trash on iPhone: reviewing a stale photo, with trash, undo and keep buttons" },
+  { feature: 5, src: appTerminal, alt: "Remote Terminal on iPhone: an interactive Mac shell session with a keyboard toolbar" },
 ];
 
+/**
+ * "More than a launcher": a bracketed index (topology "Public goods") of the features nobody
+ * else has — mono number, large title, mono description, and the real iPhone screen beside it.
+ */
 export function ProductSection() {
   const t = useT();
   return (
-    <section
-      className="mx-auto w-[min(1120px,calc(100%_-_40px))] scroll-mt-28 py-24 max-sm:w-[min(calc(100%_-_24px),1120px)] max-sm:py-16"
-      id="product"
-    >
-      <div className="max-w-[680px]">
-        <p className="font-mono text-[12px] font-medium tracking-[0.14em] text-blue uppercase">{t.product.eyebrow}</p>
-        <h2 className="mt-3 font-display text-[clamp(34px,4.6vw,54px)] leading-[1.02] font-bold tracking-[-0.035em] text-ink">
-          {t.product.title}
-        </h2>
-      </div>
+    <section className={`${frame} scroll-mt-20`} id="product">
+      <SectionRule index="03" label={t.product.eyebrow} />
+      <h2 data-brighten className={`${h2} mt-10 max-w-[1000px]`}>
+        {t.product.title}
+      </h2>
 
-      <div className="mt-12 grid grid-cols-3 gap-5 max-[860px]:grid-cols-2 max-sm:grid-cols-1">
-        {t.product.features.map(({ title, body }, i) => {
-          const { Icon, tint } = featureStyles[i];
-          return (
-            <article
-              key={i}
-              className="group rounded-2xl border border-line bg-white/70 p-6 shadow-card backdrop-blur-sm transition hover:-translate-y-1 hover:border-blue/30 hover:shadow-lift"
-            >
-              <span className={`grid size-11 place-items-center rounded-xl ${tint} transition group-hover:scale-105`}>
-                <Icon size={20} strokeWidth={2} />
-              </span>
-              <h3 className="mt-5 font-display text-[21px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
-              <p className="mt-2 text-[15.5px] leading-[1.55] text-muted">{body}</p>
-            </article>
-          );
-        })}
-      </div>
+      <Bracket className="mt-16 max-sm:mt-10">
+        <ul>
+          {EXTRAS.map(({ feature, src, alt }, i) => {
+            const { title, body } = t.product.features[feature];
+            return (
+              <li
+                key={feature}
+                data-reveal
+                style={{ "--d": `${i * 90}ms` } as React.CSSProperties}
+                className="group grid grid-cols-12 items-center gap-x-6 gap-y-8 border-b border-ink/12 px-5 py-14 transition-colors duration-300 last:border-b-0 hover:bg-ink/[0.04] max-sm:px-1 max-sm:py-10"
+              >
+                <div className="col-span-6 col-start-2 max-[940px]:col-span-12 max-[940px]:col-start-1">
+                  <span className="block font-mono text-[12px] text-muted">{String(i + 1).padStart(2, "0")}.</span>
+                  <h3 className="mt-5 font-display text-[clamp(40px,4.6vw,72px)] leading-[1] text-ink transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-2">
+                    {title}
+                  </h3>
+                  <p className={`mt-6 max-w-[52ch] ${monoBody}`}>{body}</p>
+                </div>
+                <div className="col-span-4 col-start-9 flex justify-center max-[940px]:col-span-12 max-[940px]:col-start-1">
+                  <img
+                    src={src}
+                    alt={alt}
+                    loading="lazy"
+                    width={760}
+                    height={1644}
+                    className="h-auto w-[min(260px,70vw)] rounded-[13%/6%] ring-1 ring-ink/10 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] [filter:drop-shadow(0_30px_60px_rgba(0,0,0,0.6))] group-hover:-translate-y-2"
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Bracket>
     </section>
   );
 }

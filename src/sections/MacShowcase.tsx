@@ -1,54 +1,41 @@
-import { Boxes, LayoutGrid, Smartphone } from "lucide-react";
 import appMac from "../assets/app-mac.webp";
 import { useT } from "../lib/i18n";
+import { Bracket, RevealWords, SectionRule, frame, lead } from "../lib/ui";
 
-const calloutIcons = [LayoutGrid, Boxes, Smartphone];
-
+/**
+ * The Mac app, topology "Select investments" scale: an oversized two-tone heading that lights up
+ * as it arrives, the pitch on the right, then the real app inside the bracketed frame, easing up
+ * from 92% to full size as it comes into view.
+ */
 export function MacShowcase() {
   const t = useT();
   return (
-    <section
-      className="mx-auto w-[min(1120px,calc(100%_-_40px))] scroll-mt-28 py-24 max-sm:w-[min(calc(100%_-_24px),1120px)] max-sm:py-16"
-      id="mac"
-    >
-      <div className="max-w-[680px]">
-        <p className="font-mono text-[12px] font-medium tracking-[0.14em] text-blue uppercase">{t.mac.eyebrow}</p>
-        <h2 className="mt-3 font-display text-[clamp(34px,4.6vw,54px)] leading-[1.02] font-bold tracking-[-0.035em] text-ink max-sm:text-[32px]">
-          {t.mac.titleLine1}
-          <br className="max-sm:hidden" /> {t.mac.titleLine2}
-        </h2>
-        <p className="mt-4 max-w-[540px] text-[18px] leading-[1.6] text-muted max-sm:text-[16px] max-sm:leading-[1.55]">
-          {t.mac.subtitle}
+    <section className={`${frame} scroll-mt-20 pb-32 max-sm:pb-20`} id="mac">
+      <SectionRule index="02" label={t.mac.eyebrow} />
+      <h2 data-brighten className="mt-10 font-display text-[clamp(52px,9vw,148px)] leading-[0.9] text-ink">
+        {t.mac.titleLine1}
+        <br />
+        <span className="text-ink/40">{t.mac.titleLine2}</span>
+      </h2>
+      <div className="mt-10 grid grid-cols-12 gap-x-6">
+        <p className={`${lead} col-span-4 col-start-9 max-w-[440px] max-[940px]:col-span-12 max-[940px]:col-start-1`}>
+          <RevealWords text={t.mac.subtitle} />
         </p>
       </div>
 
-      {/* Mac window */}
-      <div className="relative mt-12 max-sm:mt-9">
-        <div className="absolute inset-x-10 top-10 -z-[1] h-full rounded-[28px] bg-[radial-gradient(circle_at_50%_0%,rgba(46,107,255,0.18),transparent_60%)] blur-2xl" aria-hidden="true" />
-        <div className="overflow-hidden rounded-[14px] border border-line shadow-device max-sm:rounded-[10px]">
-          <img
-            src={appMac}
-            alt="Fiple for macOS, showing the Code, Work, and Music workspaces, the Fiple Bar, the Terminal and Smart Trash tools, and Recent activity"
-            className="block w-full"
-            loading="lazy"
-          />
+      <Bracket className="mt-16 max-sm:mt-10">
+        <div className="px-[clamp(12px,3vw,48px)] py-[clamp(12px,3vw,48px)]">
+          {/* Capped at the screenshot's native size (1992px = 996 CSS px at 2×) so it never upscales and blurs */}
+          <div data-zoom className="mx-auto max-w-[996px] origin-top overflow-hidden rounded-[12px] shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] will-change-transform max-sm:rounded-[8px]">
+            <img
+              src={appMac}
+              alt="Fiple for macOS, showing the Code, Work, and Music workspaces, the Fiple Bar, the Terminal and Smart Trash tools, and Recent activity"
+              className="block w-full"
+              loading="lazy"
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="mt-12 grid grid-cols-3 gap-5 max-[760px]:grid-cols-1">
-        {t.mac.callouts.map(({ title, body }, i) => {
-          const Icon = calloutIcons[i];
-          return (
-            <article key={i} className="rounded-2xl border border-line bg-white/70 p-6 shadow-card backdrop-blur-sm">
-              <span className="grid size-11 place-items-center rounded-xl bg-blueSoft text-blue">
-                <Icon size={20} strokeWidth={2} />
-              </span>
-              <h3 className="mt-5 font-display text-[20px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
-              <p className="mt-2 text-[15.5px] leading-[1.55] text-muted">{body}</p>
-            </article>
-          );
-        })}
-      </div>
+      </Bracket>
     </section>
   );
 }

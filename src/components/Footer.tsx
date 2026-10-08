@@ -1,7 +1,12 @@
-import { Send } from "lucide-react";
+import { useEffect, useRef } from "react";
+import type { MouseEvent } from "react";
+import { ArrowUp, Send } from "lucide-react";
 import icon from "../assets/fiple-icon.png";
+import { HeroBackdrop } from "./HeroBackdrop";
+import type { BackdropPose, HeroMotion } from "./HeroBackdrop";
 import { useT } from "../lib/i18n";
-import { APP_STORE_URL, LINKEDIN_URL, MAC_DOWNLOAD_URL, TELEGRAM_URL } from "../lib/links";
+import { LINKEDIN_URL, TELEGRAM_URL } from "../lib/links";
+import { meta } from "../lib/ui";
 
 // lucide dropped brand icons, so the LinkedIn glyph ships inline.
 function LinkedinGlyph({ size = 18 }: { size?: number }) {
@@ -12,75 +17,182 @@ function LinkedinGlyph({ size = 18 }: { size?: number }) {
   );
 }
 
-export function Footer() {
+// The footer gets its own full-screen slab of the live surface — a different crater than the
+// hero — darkening toward the bottom, with the links framed by bracketed hairlines.
+const FOOTER_POSE: BackdropPose = { center: [-0.1, 0.45], angle: -0.6, squash: 1.5, seed: 17.3, fadeBottom: false };
+const SUPPORT_EMAIL = "support@fiple.app";
+
+// Home footer, as on topology.vc: the black veil dissolves into the surface as the footer
+// comes up → the surface alone, morphing as you scroll → the links frame rises from the
+// bottom → the surface keeps morphing under it. Veil and frame are timed on the footer's entry.
+// The veil runs on the footer's entry instead (see `veilProgress`): it starts dissolving as the
+// footer comes up into the lower part of the screen, and is gone by the time it reaches the top.
+const VEIL_FROM = 1.0;  // footer top just entering at the bottom → veil starts to fade
+const VEIL_TO = 0.55;   // footer top at 55% → fully gone
+// The frame also runs on entry: it rises while the surface is still surfacing, in place before the pin.
+const FRAME_FROM = 0.6;  // footer top at 60% of the viewport height
+const FRAME_TO = 0.15;   // footer top at 15% — in place just before it pins
+
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+const smooth = (a: number, b: number, x: number) => {
+  const t = clamp01((x - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+
+const link = "transition hover:opacity-60";
+
+/** `reveal`: the home page's pinned scroll scene. Elsewhere it is a plain one-screen footer. */
+export function Footer({ reveal = false }: { reveal?: boolean }) {
   const t = useT();
+  const motion = useRef<HeroMotion>({ p: 0, mx: 0, my: 0 });
+  const trackRef = useRef<HTMLElement>(null);
+  const veilRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!reveal || !track) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const fine = window.matchMedia("(pointer: fine)").matches;
+
+    const target = { mx: 0, my: 0 };
+    const onPointer = (e: PointerEvent) => {
+      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
+      target.my = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    if (fine && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
+
+    const progress = () => {
+      const distance = track.offsetHeight - window.innerHeight;
+      return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 1;
+    };
+
+    const entry = (from: number, to: number) => {
+      const top = track.getBoundingClientRect().top / window.innerHeight;
+      return clamp01((from - top) / (from - to));
+    };
+    let veilP = entry(VEIL_FROM, VEIL_TO);
+    let frameP = entry(FRAME_FROM, FRAME_TO);
+
+    const apply = () => {
+      const veil = 1 - smooth(0, 1, veilP);
+      if (veilRef.current) {
+        veilRef.current.style.opacity = String(veil);
+        veilRef.current.style.visibility = veil < 0.01 ? "hidden" : "visible";
+      }
+      const frameIn = smooth(0, 1, frameP);
+      if (frameRef.current) {
+        frameRef.current.style.opacity = String(frameIn);
+        frameRef.current.style.transform = `translate3d(0, ${(1 - frameIn) * 100}%, 0)`;
+        frameRef.current.style.pointerEvents = frameIn > 0.5 ? "auto" : "none";
+      }
+    };
+
+    // Ease toward the real scroll/cursor so the veil, frame and surface glide.
+    let raf = 0;
+    const tick = () => {
+      const m = motion.current;
+      m.p += (progress() - m.p) * (reduced ? 1 : 0.12);
+      veilP += (entry(VEIL_FROM, VEIL_TO) - veilP) * (reduced ? 1 : 0.2);
+      frameP += (entry(FRAME_FROM, FRAME_TO) - frameP) * (reduced ? 1 : 0.2);
+      m.mx += (target.mx - m.mx) * 0.06;
+      m.my += (target.my - m.my) * 0.06;
+      apply();
+      raf = requestAnimationFrame(tick);
+    };
+    const io = new IntersectionObserver(([entry]) => {
+      cancelAnimationFrame(raf);
+      raf = entry.isIntersecting ? requestAnimationFrame(tick) : 0;
+    });
+    io.observe(track);
+    motion.current.p = progress();
+    apply();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      window.removeEventListener("pointermove", onPointer);
+    };
+  }, [reveal]);
+
+  const toTop = (e: MouseEvent) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <footer className="mx-auto w-[min(1120px,calc(100%_-_40px))] pb-10 max-sm:w-[min(calc(100%_-_24px),1120px)]">
-      <div className="grid grid-cols-[1.3fr_1.2fr] gap-12 border-t border-line pt-14 max-[860px]:grid-cols-1 max-[860px]:gap-10">
-        <div className="max-w-[340px]">
-          <div className="flex items-center gap-2.5">
-            <img src={icon} alt="" className="size-9 drop-shadow-[0_4px_8px_rgba(11,11,15,0.30)]" width={36} height={36} />
-            <span className="font-display text-[20px] font-bold tracking-[-0.03em] text-ink">Fiple</span>
-          </div>
-          <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            {t.footer.tagline}
-          </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 font-mono text-[12px] font-medium text-muted">
-            <span className="size-1.5 rounded-full bg-green" aria-hidden="true" />
-            {t.footer.comingSoon}
-          </div>
-          <div className="mt-5 flex items-center gap-2.5">
+    <footer ref={trackRef} className={`relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
+      {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
+      <div className="sticky top-0 h-svh overflow-hidden">
+        <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />
+        <div
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(16,15,15,0.5)_72%,rgba(16,15,15,0.86))]"
+          aria-hidden="true"
+        />
+        {reveal && <div ref={veilRef} className="absolute inset-0 bg-ink" data-header-dark aria-hidden="true" />}
+
+        {/* Links frame, anchored to the bottom; on home it rises in from below */}
+        <div
+          ref={frameRef}
+          className={`absolute inset-x-0 bottom-0 px-6 pb-6 max-sm:px-4 ${reveal ? "pointer-events-none opacity-0 will-change-transform" : ""}`}
+        >
+          {/* Top bracket */}
+          <div className="h-[6px] rounded-t-[4px] border-x border-t border-white/40" aria-hidden="true" />
+
+          <div className="grid grid-cols-12 gap-x-6 gap-y-10 px-5 pt-5 max-sm:px-1">
             <a
-              className="grid size-10 place-items-center rounded-xl border border-line bg-white text-muted shadow-card transition hover:-translate-y-0.5 hover:text-blue hover:shadow-lift"
-              href={TELEGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Telegram — @maksatovdias"
+              href="#top"
+              onClick={toTop}
+              className="col-span-4 flex items-center gap-2.5 self-start max-[940px]:col-span-12"
+              aria-label="Fiple — back to top"
             >
-              <Send size={18} />
+              <img src={icon} alt="" className="size-9" width={36} height={36} />
+              <span className="font-display text-[40px] leading-none font-light tracking-[-0.02em]">Fiple</span>
             </a>
-            <a
-              className="grid size-10 place-items-center rounded-xl border border-line bg-white text-muted shadow-card transition hover:-translate-y-0.5 hover:text-blue hover:shadow-lift"
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn — Dias Maksatov"
+
+            {/* Two columns: the product pages, then support and legal */}
+            <nav
+              className={`col-span-5 col-start-6 grid grid-cols-2 gap-x-6 gap-y-2 text-white/85 ${meta} text-[12px] max-[940px]:col-span-8 max-[940px]:col-start-1 max-sm:grid-cols-1 max-sm:gap-y-8`}
+              aria-label="Footer"
             >
-              <LinkedinGlyph size={17} />
+              <div className="grid content-start gap-2">
+                <a className={link} href="/how">{t.header.navHow}</a>
+                <a className={link} href="/mac">{t.header.navMac}</a>
+                <a className={link} href="/product">{t.header.navProduct}</a>
+              </div>
+              <div className="grid content-start gap-2">
+                <a className={link} href="/support">{t.footer.legalSupport}</a>
+                <a className={link} href="/privacy">{t.footer.legalPrivacy}</a>
+                <a className={link} href="/terms">{t.footer.legalTerms}</a>
+              </div>
+            </nav>
+
+            <div className="col-span-2 col-start-11 flex justify-end gap-4 self-start text-white/75 max-[940px]:col-span-4 max-[940px]:col-start-9">
+              <a className={link} href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram — @maksatovdias">
+                <Send size={19} />
+              </a>
+              <a className={link} href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn — Dias Maksatov">
+                <LinkedinGlyph size={18} />
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-16 flex items-baseline justify-between gap-6 px-5 pb-5 max-sm:mt-12 max-sm:flex-col max-sm:items-start max-sm:px-1">
+            <p className="text-[15px] font-light text-white/60">
+              {t.footer.getInTouch}{" "}
+              <a className={`text-white ${link}`} href={`mailto:${SUPPORT_EMAIL}`}>
+                {SUPPORT_EMAIL}
+              </a>
+            </p>
+            <a href="#top" onClick={toTop} className={`inline-flex items-center gap-1.5 ${meta} ${link}`}>
+              {t.footer.backToTop}
+              <ArrowUp size={12} />
             </a>
           </div>
+
+          {/* Bottom bracket */}
+          <div className="h-[6px] rounded-b-[4px] border-x border-b border-white/40" aria-hidden="true" />
         </div>
-        <div className="grid grid-cols-3 gap-8 max-sm:grid-cols-2">
-          <div>
-            <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-faint uppercase">{t.footer.pagesHeading}</p>
-            <ul className="grid gap-3 text-[15px] font-medium text-ink2">
-              <li><a className="transition hover:text-blue" href="#top">{t.footer.pageHome}</a></li>
-              <li><a className="transition hover:text-blue" href="#how">{t.header.navHow}</a></li>
-              <li><a className="transition hover:text-blue" href="#product">{t.header.navProduct}</a></li>
-              <li><a className="transition hover:text-blue" href="#mac">{t.header.navMac}</a></li>
-            </ul>
-          </div>
-          <div>
-            <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-faint uppercase">{t.footer.getItHeading}</p>
-            <ul className="grid gap-3 text-[15px] font-medium text-ink2">
-              <li><a className="transition hover:text-blue" href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">{t.footer.getAppStore}</a></li>
-              <li><a className="transition hover:text-blue" href={MAC_DOWNLOAD_URL}>{t.footer.getMacDirect}</a></li>
-              <li><a className="transition hover:text-blue" href="#download">{t.footer.getUpdates}</a></li>
-            </ul>
-          </div>
-          <div>
-            <p className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-faint uppercase">{t.footer.legalHeading}</p>
-            <ul className="grid gap-3 text-[15px] font-medium text-ink2">
-              <li><a className="transition hover:text-blue" href="/support">{t.footer.legalSupport}</a></li>
-              <li><a className="transition hover:text-blue" href="/privacy">{t.footer.legalPrivacy}</a></li>
-              <li><a className="transition hover:text-blue" href="/terms">{t.footer.legalTerms}</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div className="mt-12 flex items-center justify-between gap-4 border-t border-line pt-6 text-[13px] text-faint max-sm:flex-col max-sm:items-start">
-        <span>{t.footer.copyright}</span>
-        <span className="font-mono">{t.footer.made}</span>
       </div>
     </footer>
   );

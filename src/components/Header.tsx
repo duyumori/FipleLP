@@ -1,25 +1,76 @@
+import { useEffect, useState } from "react";
 import icon from "../assets/fiple-icon.png";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL } from "../lib/links";
 import { LangToggle } from "./LangToggle";
 
+const navLink = "transition hover:opacity-60";
+
 export function Header() {
   const t = useT();
+  const [onDark, setOnDark] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const zones = document.querySelectorAll<HTMLElement>("[data-header-dark]");
+      setOnDark(
+        [...zones].some((z) => {
+          const r = z.getBoundingClientRect();
+          return r.top <= 36 && r.bottom > 36 && Number(getComputedStyle(z).opacity) > 0.5;
+        }),
+      );
+    };
+    let raf = 0;
+    let settle = 0;
+    const onScroll = () => {
+      check();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => (raf = requestAnimationFrame(check)));
+      window.clearTimeout(settle);
+      settle = window.setTimeout(check, 250);
+    };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(settle);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-4 z-50 mx-auto mt-5 flex w-[min(1120px,calc(100%_-_40px))] items-center justify-between rounded-2xl border border-line bg-white/70 py-2.5 pr-2.5 pl-3.5 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_10px_30px_-12px_rgba(11,11,15,0.18)] backdrop-blur-xl max-sm:top-2.5 max-sm:mt-3 max-sm:w-[min(calc(100%_-_24px),1120px)]">
-      <a className="flex items-center gap-2.5" href="#top" aria-label="Fiple home">
-        <img src={icon} alt="" className="size-9 drop-shadow-[0_4px_8px_rgba(11,11,15,0.30)]" width={36} height={36} />
-        <span className="font-display text-[20px] font-bold tracking-[-0.03em] text-ink">Fiple</span>
+    <header
+      className={`fixed inset-x-0 top-0 z-50 flex h-[72px] w-full items-center justify-between px-6 transition-colors duration-300 max-sm:h-16 max-sm:px-4 ${
+        onDark ? "text-white" : "text-ink"
+      }`}
+    >
+      {/* Over dark pages: a soft fade from the page colour, so headings slide under the nav
+          instead of colliding with it (no solid bar — it stays visually transparent) */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-[120%] bg-gradient-to-b from-[#111111] via-[#111111]/80 to-transparent transition-opacity duration-300 ${
+          onDark ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden="true"
+      />
+      <a className="flex items-center gap-2" href="/" aria-label="Fiple home">
+        <img src={icon} alt="" className="size-7 drop-shadow-[0_3px_6px_rgba(16,15,15,0.25)]" width={28} height={28} />
+        <span className="font-display text-[22px] font-normal tracking-[-0.02em]">Fiple</span>
       </a>
-      <nav className="hidden flex-1 items-center justify-center gap-1 px-4 text-[15px] font-medium text-ink2 md:flex" aria-label="Primary navigation">
-        <a className="rounded-full px-3.5 py-2 transition hover:bg-base2" href="#how">{t.header.navHow}</a>
-        <a className="rounded-full px-3.5 py-2 transition hover:bg-base2" href="#product">{t.header.navProduct}</a>
-        <a className="rounded-full px-3.5 py-2 transition hover:bg-base2" href="#mac">{t.header.navMac}</a>
-      </nav>
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-7 max-sm:gap-2.5">
+        <nav
+          className={`hidden items-center gap-7 text-[11px] font-normal tracking-[0.1em] uppercase md:flex ${
+            onDark ? "text-white/75" : "text-ink2"
+          }`}
+          aria-label="Primary navigation"
+        >
+          <a className={navLink} href="/how">{t.header.navHow}</a>
+          <a className={navLink} href="/mac">{t.header.navMac}</a>
+          <a className={navLink} href="/product">{t.header.navProduct}</a>
+        </nav>
         <LangToggle />
         <a
-          className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-[15px] font-semibold whitespace-nowrap text-white transition hover:bg-ink2 active:scale-[0.98] max-sm:px-3.5 max-sm:text-[14px]"
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-medium tracking-[0.1em] whitespace-nowrap uppercase transition active:scale-[0.98] ${
+            onDark ? "bg-white text-ink hover:bg-white/90" : "bg-ink text-white hover:bg-ink2"
+          }`}
           href={APP_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"

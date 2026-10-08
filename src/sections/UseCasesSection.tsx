@@ -1,36 +1,31 @@
-import { Code2, Palette, Target } from "lucide-react";
+import icon from "../assets/fiple-icon.png";
 import { useT } from "../lib/i18n";
+import { meta, monoBody } from "../lib/ui";
 
-const useCaseIcons = [Code2, Palette, Target];
-
+/**
+ * The manifesto — the first thing seen through the hero's exit hole (topology's centred
+ * "Where our name comes from" screen). The track is 150svh and starts 150svh above the
+ * hero's end, so the content pins dead-centre while the hole opens, then scrolls on with the page.
+ * The title is two-tone: first sentence full ink, the rest muted (Linear/Raycast style).
+ */
 export function UseCasesSection() {
   const t = useT();
+  const [first, ...rest] = t.useCases.title.split(/(?<=\.)\s+/);
   return (
-    <section className="mx-auto grid w-[min(1120px,calc(100%_-_40px))] grid-cols-[1fr_0.9fr] items-start gap-12 py-24 max-[940px]:grid-cols-1 max-[940px]:gap-10 max-sm:w-[min(calc(100%_-_24px),1120px)] max-sm:py-16">
-      <div className="max-w-[520px]">
-        <p className="font-mono text-[12px] font-medium tracking-[0.14em] text-blue uppercase">{t.useCases.eyebrow}</p>
-        <h2 className="mt-3 font-display text-[clamp(34px,4.6vw,54px)] leading-[1.02] font-bold tracking-[-0.035em] text-ink">
-          {t.useCases.title}
+    <section className="relative h-[150svh]" aria-label={t.useCases.eyebrow}>
+      <div className="sticky top-0 flex h-svh flex-col items-center justify-center px-6 text-center max-sm:px-4">
+        <img src={icon} alt="" className="size-11 opacity-90" width={44} height={44} />
+        <p className={`mt-8 text-muted ${meta}`}>{t.useCases.eyebrow}</p>
+        {/* One sentence per line on wide screens; natural wrapping on phones */}
+        <h2 className="mt-5 font-display text-[clamp(44px,6.6vw,108px)] leading-[0.95] text-balance text-ink">
+          {first}
+          {rest.length > 0 && (
+            <>
+              <br className="max-sm:hidden" /> <span className="text-ink/40">{rest.join(" ")}</span>
+            </>
+          )}
         </h2>
-        <p className="mt-4 text-[18px] leading-[1.6] text-muted">
-          {t.useCases.subtitle}
-        </p>
-      </div>
-      <div className="grid gap-4">
-        {t.useCases.cards.map(({ title, body }, i) => {
-          const Icon = useCaseIcons[i];
-          return (
-            <article key={i} className="flex gap-4 rounded-2xl border border-line bg-white/70 p-5 shadow-card backdrop-blur-sm">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-base2 text-ink2">
-                <Icon size={20} strokeWidth={2} />
-              </span>
-              <div>
-                <h3 className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
-                <p className="mt-1 text-[15.5px] leading-[1.55] text-muted">{body}</p>
-              </div>
-            </article>
-          );
-        })}
+        <p className={`mt-8 max-w-[46ch] ${monoBody}`}>{t.useCases.subtitle}</p>
       </div>
     </section>
   );

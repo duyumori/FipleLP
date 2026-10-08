@@ -3,3 +3,6 @@ dist/
 .env
 .DS_Store
 .playwright-mcp/
+coverage/
+playwright-report/
+test-results/
