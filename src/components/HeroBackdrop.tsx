@@ -506,32 +506,13 @@ export function HeroBackdrop({
     let drawRaf = 0;
     let visible = true;
     let last = 0;
-    let drawnP = Number.NaN;
-    let drawnDark = Number.NaN;
-    let drawnAt = -Infinity;
     const loop = (ms: number) => {
       const dt = Math.min((ms - (last || ms)) / 1000 || 1 / 60, 1 / 30);
       last = ms;
       stepFluid(dt);
-      if (fine) {
-        drawSurface(ms);
-      } else {
-        // Touch: the surface is a still frame (frozen clock — no breathing, no grain
-        // flicker). Redraw only when the scroll scene actually changes it (progress /
-        // exit hole), and cap that at 30fps: during a fast scroll a 60fps re-draw of the
-        // shader competes with the compositor for GPU time, while the extra frames are
-        // masked by the scroll motion anyway. Dirty state is kept until drawn, so the
-        // final frame after scrolling stops always lands.
-        const m = motion.current;
-        const p = m?.p ?? 0;
-        const dark = m?.dark ?? 0;
-        if ((p !== drawnP || dark !== drawnDark) && ms - drawnAt >= 33) {
-          drawnP = p;
-          drawnDark = dark;
-          drawnAt = ms;
-          drawSurface(0);
-        }
-      }
+      // Touch: not reachable (`start()` is desktop-only) — the surface is a frozen still
+      // frame drawn once at mount/resize, and the scroll scene composites on top of it.
+      drawSurface(ms);
       raf = requestAnimationFrame(loop);
     };
     const start = () => {
@@ -547,11 +528,8 @@ export function HeroBackdrop({
       drawRaf = 0;
     };
     const onScroll = () => {
-      if (fine || !visible || document.hidden || drawRaf) return;
-      drawRaf = requestAnimationFrame(() => {
-        drawRaf = 0;
-        drawSurface(0);
-      });
+      // Touch: the frozen still frame never redraws on scroll — the scene (phone, phrases,
+      // text) composites on top of it. Resize re-draws via the ResizeObserver below.
     };
 
     const ro = new ResizeObserver(() => {
