@@ -24,14 +24,16 @@ export function DemoSection() {
     v.muted = true;
     v.setAttribute("muted", "");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Phones: decoding the loop while only a sliver is on screen just burns the hardware
+    // decoder on every scroll past this section — start at half visibility. Desktop keeps
+    // the original 0.25 start point (the product is laptop-first; nothing else changes there).
+    const threshold = window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 0.5 : 0.25;
     const io = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting && !open) v.play().catch(() => {});
         else v.pause();
       },
-      // 0.5: decoding a video while only a sliver of it is on screen just burns the
-      // phone's decoder during the scroll past this section — start at half visibility.
-      { threshold: 0.5 },
+      { threshold },
     );
     io.observe(v);
     return () => io.disconnect();
