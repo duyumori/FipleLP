@@ -503,6 +503,7 @@ export function HeroBackdrop({
     };
 
     let raf = 0;
+    let drawRaf = 0;
     let visible = true;
     let last = 0;
     let drawnP = Number.NaN;
@@ -534,14 +535,23 @@ export function HeroBackdrop({
       raf = requestAnimationFrame(loop);
     };
     const start = () => {
-      if (!raf && visible && !document.hidden && !reduced) {
+      if (fine && !raf && visible && !document.hidden && !reduced) {
         last = 0;
         raf = requestAnimationFrame(loop);
       }
     };
     const stop = () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(drawRaf);
       raf = 0;
+      drawRaf = 0;
+    };
+    const onScroll = () => {
+      if (fine || !visible || document.hidden || drawRaf) return;
+      drawRaf = requestAnimationFrame(() => {
+        drawRaf = 0;
+        drawSurface(0);
+      });
     };
 
     const ro = new ResizeObserver(() => {
@@ -559,6 +569,7 @@ export function HeroBackdrop({
     io.observe(canvas);
     const onVis = () => (document.hidden ? stop() : start());
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("scroll", onScroll, { passive: true });
     if (fluidOk) window.addEventListener("pointermove", onPointer, { passive: true });
 
     resize();
@@ -570,6 +581,7 @@ export function HeroBackdrop({
       ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointermove", onPointer);
       freeTargets();
       gl.deleteTexture(still.tex);
