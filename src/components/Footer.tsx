@@ -55,6 +55,22 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fine = window.matchMedia("(pointer: fine)").matches;
 
+    // Phones get the simple version: no entry animation at all. The black curtain right
+    // before it dissolves into a frozen frame looks like a slab sliding up, and the frame
+    // rise adds nothing on a static surface — both render settled, permanently.
+    if (!fine) {
+      if (veilRef.current) {
+        veilRef.current.style.opacity = "0";
+        veilRef.current.style.visibility = "hidden";
+      }
+      if (frameRef.current) {
+        frameRef.current.style.opacity = "1";
+        frameRef.current.style.transform = "none";
+        frameRef.current.style.pointerEvents = "auto";
+      }
+      return;
+    }
+
     const target = { mx: 0, my: 0 };
 
     const progress = () => {
@@ -72,11 +88,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const apply = () => {
       const veil = 1 - smooth(0, 1, veilP);
       if (veilRef.current) {
-        // Phones: underneath the veil the surface is a frozen still frame, so a full-opacity
-        // curtain reads as a flat black slab rising from the bottom of the screen. Cap the
-        // curtain at 40% on coarse pointers — the footer surfaces soft, never as a black block.
-        // Desktop keeps the full dissolve (the live surface shows through it).
-        veilRef.current.style.opacity = String(fine ? veil : veil * 0.4);
+        veilRef.current.style.opacity = String(veil);
         veilRef.current.style.visibility = veil < 0.01 ? "hidden" : "visible";
       }
       const frameIn = smooth(0, 1, frameP);
@@ -164,7 +176,12 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
       {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
       <div className="sticky top-0 h-svh overflow-hidden">
         <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />
+        {/* Phones swap the crater for a flat dark panel (see the coarse media query) — the
+            entry then reads as a plain dark section instead of a black slab chasing light
+            grey, and the footer costs zero raster work. */}
+        <div data-foot-flat className="absolute inset-0 hidden bg-[linear-gradient(to_bottom,#171614_0%,#100f0f_100%)]" aria-hidden="true" />
         <div
+          data-foot-shade
           className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(16,15,15,0.5)_72%,rgba(16,15,15,0.86))]"
           aria-hidden="true"
         />
