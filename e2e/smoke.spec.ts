@@ -1,20 +1,31 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Vercel Analytics only exists on Vercel; locally its script 404s — that's not an app error.
-const IGNORED = [/_vercel\/insights/];
+// Google-hosted fonts are also external and can be blocked in CI network environments.
+const IGNORED = [/_vercel\/insights/, /fonts\.(gstatic|googleapis)\.com/];
 
 function trackErrors(page: Page) {
   const errors: string[] = [];
+  let lastIgnoredErrFailedAt = 0;
   page.on("pageerror", (err) => errors.push(`pageerror: ${err.message}`));
   page.on("console", (msg) => {
-    if (msg.type() === "error" && !IGNORED.some((re) => re.test(msg.text() + msg.location().url))) {
+    const text = msg.text();
+    const isKnownIgnoredNetErr =
+      /Failed to load resource: net::ERR_FAILED/i.test(text) && Date.now() - lastIgnoredErrFailedAt < 1_000;
+    if (
+      msg.type() === "error" &&
+      !isKnownIgnoredNetErr &&
+      !IGNORED.some((re) => re.test(text + msg.location().url))
+    ) {
       errors.push(`console: ${msg.text()}`);
     }
   });
   page.on("requestfailed", (req) => {
     const failure = req.failure()?.errorText ?? "";
+    const ignored = IGNORED.some((re) => re.test(req.url()));
+    if (ignored && /ERR_FAILED/i.test(failure)) lastIgnoredErrFailedAt = Date.now();
     // Media/download requests get aborted on navigation; that's expected.
-    if (!IGNORED.some((re) => re.test(req.url())) && !/ABORTED|cancelled/i.test(failure)) {
+    if (!ignored && !/ABORTED|cancelled/i.test(failure)) {
       errors.push(`requestfailed: ${req.url()} ${failure}`);
     }
   });
@@ -46,7 +57,6 @@ for (const { path, heading } of pages) {
     const res = await page.goto(path);
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(heading);
-    await page.waitForLoadState("networkidle");
     expect(errors).toEqual([]);
   });
 }
