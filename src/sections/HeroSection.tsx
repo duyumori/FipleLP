@@ -113,10 +113,16 @@ export function HeroSection() {
         }
         el.style.opacity = String(o);
         el.style.transform = `translate3d(${mx * -10}px, ${(1 - fadeIn) * 40 - fadeOut * 40}px, 0)`;
-        // filter is the most expensive per-frame write (it re-rasterises the text); only
-        // touch it when the value actually changed.
-        const blur = `blur(${(1 - o) * 10}px)`;
-        if (el.style.filter !== blur) el.style.filter = blur;
+        if (finePointer) {
+          // filter is the most expensive per-frame write (it re-rasterises the text); only
+          // touch it when the value actually changed.
+          const blur = `blur(${(1 - o) * 10}px)`;
+          if (el.style.filter !== blur) el.style.filter = blur;
+        } else if (el.style.filter) {
+          // Touch: no per-frame blur at all — re-rasterising huge display text every frame
+          // is the main scroll-jank source on phones. The phrases still fade + rise.
+          el.style.filter = "";
+        }
         el.style.visibility = "visible";
       });
     };
