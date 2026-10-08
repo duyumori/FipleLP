@@ -486,27 +486,42 @@ export function HeroBackdrop({
     };
 
     const resize = () => {
-      // Full device resolution (capped at 2×) keeps the terrace lines crisp; the expensive part,
-      // the fluid, runs on a small fixed grid regardless of screen size.
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(canvas.clientWidth * dpr);
-      canvas.height = Math.round(canvas.clientHeight * dpr);
+      // Full device resolution keeps the terrace lines crisp; the expensive part, the fluid,
+      // runs on a small fixed grid regardless of screen size. Touch devices (coarse pointer)
+      // render at a lower DPR — at 2× they fill 1.3M+ pixels per frame and the surface pass
+      // alone saturates the mobile GPU. Skip no-op resizes: the mobile URL bar toggling
+      // fires ResizeObserver on every scroll direction change.
+      const maxDpr = fine ? 2 : 1.5;
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+      const w = Math.round(canvas.clientWidth * dpr);
+      const h = Math.round(canvas.clientHeight * dpr);
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w;
+      canvas.height = h;
       buildSim();
     };
 
     let raf = 0;
     let visible = true;
     let last = 0;
+    let lastDraw = 0;
+    // Touch devices: no fluid (pointer: fine is required), so the only per-frame cost is the
+    // surface pass. Half rate keeps the breathing animation smooth while halving that cost.
+    const frameGap = fine ? 0 : 33;
     const loop = (ms: number) => {
       const dt = Math.min((ms - (last || ms)) / 1000 || 1 / 60, 1 / 30);
       last = ms;
       stepFluid(dt);
-      drawSurface(ms);
+      if (ms - lastDraw >= frameGap) {
+        lastDraw = ms;
+        drawSurface(ms);
+      }
       raf = requestAnimationFrame(loop);
     };
     const start = () => {
       if (!raf && visible && !document.hidden && !reduced) {
         last = 0;
+        lastDraw = 0;
         raf = requestAnimationFrame(loop);
       }
     };

@@ -37,6 +37,18 @@ function trackErrors(page: Page) {
   return errors;
 }
 
+async function expectNotVercelProtectionPage(page: Page) {
+  const pageText = await page.locator("body").innerText();
+  const pageTitle = await page.title();
+
+  expect(
+    `${pageTitle}\n${pageText}`,
+    "Vercel Deployment Protection blocked the live E2E run. " +
+      "Set VERCEL_AUTOMATION_BYPASS_SECRET in GitHub Actions to the current " +
+      "Vercel Protection Bypass for Automation secret.",
+  ).not.toMatch(/log in to vercel|deployment protection/i);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     if (!window.localStorage.getItem("fiple-lang")) window.localStorage.setItem("fiple-lang", "en");
@@ -56,6 +68,7 @@ for (const { path, heading } of pages) {
     const errors = trackErrors(page);
     const res = await page.goto(path);
     expect(res?.status()).toBe(200);
+    await expectNotVercelProtectionPage(page);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(heading);
     expect(errors).toEqual([]);
   });
@@ -64,6 +77,7 @@ for (const { path, heading } of pages) {
 test("landing scrolls through every section without errors", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/");
+  await expectNotVercelProtectionPage(page);
   await page.evaluate(async () => {
     for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight / 2) {
       window.scrollTo(0, y);
@@ -78,6 +92,7 @@ test("landing scrolls through every section without errors", async ({ page }) =>
 test("/download page is served and the .dmg exists", async ({ page, request }) => {
   const errors = trackErrors(page);
   await page.goto("/download");
+  await expectNotVercelProtectionPage(page);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const href = await page.locator('a[download]').first().getAttribute("href");
   expect(href).toMatch(/\/downloads\/.+\.dmg/);

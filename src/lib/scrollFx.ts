@@ -30,20 +30,28 @@ export function useScrollFx(key: unknown) {
 
     const brights = [...document.querySelectorAll<HTMLElement>("[data-brighten]")];
     const zooms = [...document.querySelectorAll<HTMLElement>("[data-zoom]")];
+    if (reduced) {
+      // No scroll tracking: settle everything into its final state once.
+      brights.forEach((el) => (el.style.opacity = "1"));
+      zooms.forEach((el) => (el.style.transform = ""));
+      return () => io.disconnect();
+    }
     let raf = 0;
     const update = () => {
       raf = 0;
       const ih = window.innerHeight;
-      for (const el of brights) {
-        const top = el.getBoundingClientRect().top;
-        const x = clamp01((ih * 0.95 - top) / (ih * 0.5));
-        el.style.opacity = String(reduced ? 1 : 0.16 + 0.84 * smooth(x));
-      }
-      for (const el of zooms) {
-        const top = el.getBoundingClientRect().top;
-        const x = clamp01((ih - top) / (ih * 0.8));
-        el.style.transform = reduced ? "" : `scale(${0.92 + 0.08 * smooth(x)})`;
-      }
+      // Batch every layout read first, then write — interleaving getBoundingClientRect
+      // with style writes forces a reflow per element on mobile.
+      const brightTops = brights.map((el) => el.getBoundingClientRect().top);
+      const zoomTops = zooms.map((el) => el.getBoundingClientRect().top);
+      brights.forEach((el, i) => {
+        const x = clamp01((ih * 0.95 - brightTops[i]) / (ih * 0.5));
+        el.style.opacity = String(0.16 + 0.84 * smooth(x));
+      });
+      zooms.forEach((el, i) => {
+        const x = clamp01((ih - zoomTops[i]) / (ih * 0.8));
+        el.style.transform = `scale(${0.92 + 0.08 * smooth(x)})`;
+      });
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);

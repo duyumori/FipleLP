@@ -56,11 +56,6 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const fine = window.matchMedia("(pointer: fine)").matches;
 
     const target = { mx: 0, my: 0 };
-    const onPointer = (e: PointerEvent) => {
-      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
-      target.my = (e.clientY / window.innerHeight) * 2 - 1;
-    };
-    if (fine && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
 
     const progress = () => {
       const distance = track.offsetHeight - window.innerHeight;
@@ -89,20 +84,57 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     };
 
     // Ease toward the real scroll/cursor so the veil, frame and surface glide.
+    // Parks itself once converged (idle screen → zero rAF work); scroll/resize/pointer
+    // and tab visibility wake it again.
     let raf = 0;
+    let visible = false;
     const tick = () => {
+      raf = 0;
       const m = motion.current;
-      m.p += (progress() - m.p) * (reduced ? 1 : 0.12);
-      veilP += (entry(VEIL_FROM, VEIL_TO) - veilP) * (reduced ? 1 : 0.2);
-      frameP += (entry(FRAME_FROM, FRAME_TO) - frameP) * (reduced ? 1 : 0.2);
+      const pT = progress();
+      const vT = entry(VEIL_FROM, VEIL_TO);
+      const fT = entry(FRAME_FROM, FRAME_TO);
+      m.p += (pT - m.p) * (reduced ? 1 : 0.12);
+      veilP += (vT - veilP) * (reduced ? 1 : 0.2);
+      frameP += (fT - frameP) * (reduced ? 1 : 0.2);
       m.mx += (target.mx - m.mx) * 0.06;
       m.my += (target.my - m.my) * 0.06;
       apply();
-      raf = requestAnimationFrame(tick);
+      const settled =
+        Math.abs(pT - m.p) < 0.0004 &&
+        Math.abs(vT - veilP) < 0.002 &&
+        Math.abs(fT - frameP) < 0.002 &&
+        Math.abs(target.mx - m.mx) < 0.002 &&
+        Math.abs(target.my - m.my) < 0.002;
+      if (!settled) raf = requestAnimationFrame(tick);
     };
-    const io = new IntersectionObserver(([entry]) => {
-      cancelAnimationFrame(raf);
-      raf = entry.isIntersecting ? requestAnimationFrame(tick) : 0;
+    const wake = () => {
+      if (visible && !raf && !document.hidden) raf = requestAnimationFrame(tick);
+    };
+    const onScroll = () => wake();
+    const onPointer = (e: PointerEvent) => {
+      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
+      target.my = (e.clientY / window.innerHeight) * 2 - 1;
+      wake();
+    };
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else wake();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    document.addEventListener("visibilitychange", onVis);
+    if (fine && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
+
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (visible) wake();
+      else {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
     });
     io.observe(track);
     motion.current.p = progress();
@@ -111,6 +143,9 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pointermove", onPointer);
     };
   }, [reveal]);
