@@ -299,13 +299,20 @@ export function HeroBackdrop({
       return { p, u };
     };
     const surface = program(SURFACE);
-    const splat = program(SPLAT);
-    const advect = program(ADVECT);
-    const divergence = program(DIVERGENCE);
-    const pressure = program(PRESSURE);
-    const gradient = program(GRADIENT);
-    const scale = program(SCALE);
-    const programs = [surface, splat, advect, divergence, pressure, gradient, scale];
+    // The fluid passes are only compiled when the fluid can actually run (fine pointer, no
+    // reduced motion, float render targets). On touch the surface is a frozen still, so the
+    // six extras would only add shader compilation and GPU program memory for nothing.
+    const fluid = fluidOk
+      ? {
+          splat: program(SPLAT),
+          advect: program(ADVECT),
+          divergence: program(DIVERGENCE),
+          pressure: program(PRESSURE),
+          gradient: program(GRADIENT),
+          scale: program(SCALE),
+        }
+      : null;
+    const programs = fluid ? [surface, ...Object.values(fluid)] : [surface];
 
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -408,7 +415,7 @@ export function HeroBackdrop({
     };
 
     const stepFluid = (dt: number) => {
-      if (!sim) return;
+      if (!sim || !fluid) return;
       const { vel, prs, div, w, h } = sim;
       const texel: [number, number] = [1 / w, 1 / h];
 
@@ -417,12 +424,12 @@ export function HeroBackdrop({
         const dx = (pointer.x - pointer.px) * w; // in sim texels
         const dy = (pointer.y - pointer.py) * h;
         if (dx * dx + dy * dy > 1e-4) {
-          gl.useProgram(splat.p);
-          gl.uniform1i(splat.u("uVelocity"), bindTex(0, vel.get().read.tex));
-          gl.uniform1f(splat.u("uAspect"), w / h);
-          gl.uniform2f(splat.u("uPoint"), pointer.x, pointer.y);
-          gl.uniform2f(splat.u("uForce"), (dx / dt) * SPLAT_GAIN, (dy / dt) * SPLAT_GAIN);
-          gl.uniform1f(splat.u("uRadius"), SPLAT_RADIUS);
+          gl.useProgram(fluid.splat.p);
+          gl.uniform1i(fluid.splat.u("uVelocity"), bindTex(0, vel.get().read.tex));
+          gl.uniform1f(fluid.splat.u("uAspect"), w / h);
+          gl.uniform2f(fluid.splat.u("uPoint"), pointer.x, pointer.y);
+          gl.uniform2f(fluid.splat.u("uForce"), (dx / dt) * SPLAT_GAIN, (dy / dt) * SPLAT_GAIN);
+          gl.uniform1f(fluid.splat.u("uRadius"), SPLAT_RADIUS);
           blit(vel.get().write);
           vel.swap();
         }
@@ -432,39 +439,39 @@ export function HeroBackdrop({
       }
 
       // 2. Make it incompressible (swirls instead of smears): divergence → pressure → subtract.
-      gl.useProgram(divergence.p);
-      gl.uniform2f(divergence.u("uTexel"), ...texel);
-      gl.uniform1i(divergence.u("uVelocity"), bindTex(0, vel.get().read.tex));
+      gl.useProgram(fluid.divergence.p);
+      gl.uniform2f(fluid.divergence.u("uTexel"), ...texel);
+      gl.uniform1i(fluid.divergence.u("uVelocity"), bindTex(0, vel.get().read.tex));
       blit(div);
 
-      gl.useProgram(scale.p);
-      gl.uniform1i(scale.u("uTex"), bindTex(0, prs.get().read.tex));
-      gl.uniform1f(scale.u("uValue"), 0.8);
+      gl.useProgram(fluid.scale.p);
+      gl.uniform1i(fluid.scale.u("uTex"), bindTex(0, prs.get().read.tex));
+      gl.uniform1f(fluid.scale.u("uValue"), 0.8);
       blit(prs.get().write);
       prs.swap();
 
-      gl.useProgram(pressure.p);
-      gl.uniform2f(pressure.u("uTexel"), ...texel);
-      gl.uniform1i(pressure.u("uDivergence"), bindTex(1, div.tex));
+      gl.useProgram(fluid.pressure.p);
+      gl.uniform2f(fluid.pressure.u("uTexel"), ...texel);
+      gl.uniform1i(fluid.pressure.u("uDivergence"), bindTex(1, div.tex));
       for (let i = 0; i < PRESSURE_ITERS; i++) {
-        gl.uniform1i(pressure.u("uPressure"), bindTex(0, prs.get().read.tex));
+        gl.uniform1i(fluid.pressure.u("uPressure"), bindTex(0, prs.get().read.tex));
         blit(prs.get().write);
         prs.swap();
       }
 
-      gl.useProgram(gradient.p);
-      gl.uniform2f(gradient.u("uTexel"), ...texel);
-      gl.uniform1i(gradient.u("uPressure"), bindTex(0, prs.get().read.tex));
-      gl.uniform1i(gradient.u("uVelocity"), bindTex(1, vel.get().read.tex));
+      gl.useProgram(fluid.gradient.p);
+      gl.uniform2f(fluid.gradient.u("uTexel"), ...texel);
+      gl.uniform1i(fluid.gradient.u("uPressure"), bindTex(0, prs.get().read.tex));
+      gl.uniform1i(fluid.gradient.u("uVelocity"), bindTex(1, vel.get().read.tex));
       blit(vel.get().write);
       vel.swap();
 
       // 3. Let it flow and fade.
-      gl.useProgram(advect.p);
-      gl.uniform2f(advect.u("uTexel"), ...texel);
-      gl.uniform1f(advect.u("uDt"), dt);
-      gl.uniform1f(advect.u("uDissipation"), DISSIPATION);
-      gl.uniform1i(advect.u("uVelocity"), bindTex(0, vel.get().read.tex));
+      gl.useProgram(fluid.advect.p);
+      gl.uniform2f(fluid.advect.u("uTexel"), ...texel);
+      gl.uniform1f(fluid.advect.u("uDt"), dt);
+      gl.uniform1f(fluid.advect.u("uDissipation"), DISSIPATION);
+      gl.uniform1i(fluid.advect.u("uVelocity"), bindTex(0, vel.get().read.tex));
       blit(vel.get().write);
       vel.swap();
     };

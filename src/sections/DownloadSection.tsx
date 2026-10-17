@@ -30,7 +30,8 @@ export function DownloadSection() {
     setStatusKey("adding");
 
     try {
-      const { error } = await getSupabase().from("waitlist").insert({ email });
+      const supabase = await getSupabase();
+      const { error } = await supabase.from("waitlist").insert({ email });
 
       if (error) {
         if (error.code === "23505") {

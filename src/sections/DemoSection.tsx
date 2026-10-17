@@ -4,6 +4,7 @@ import { useT } from "../lib/i18n";
 import { Bracket, RevealWords, frame, meta, monoBody } from "../lib/ui";
 
 const FULL_LENGTH = "0:31";
+const POSTER = "/media/fiple-demo-poster.webp";
 
 /**
  * The real thing on film. Inline: a muted 8.5s loop of the live footage (hands, iPhone,
@@ -15,6 +16,9 @@ export function DemoSection() {
   const loopRef = useRef<HTMLVideoElement>(null);
   const fullRef = useRef<HTMLVideoElement>(null);
   const [open, setOpen] = useState(false);
+  // Phones get the poster only: the inline loop is a 2.5 MB autoplay video — it would
+  // download and keep decoding in the background. Tapping still opens the full player.
+  const [coarse] = useState(() => window.matchMedia("(hover: none) and (pointer: coarse)").matches);
 
   // Inline loop: play while visible. React doesn't render the `muted` attribute, and Safari's
   // autoplay policy checks it — so set both the property and the attribute ourselves.
@@ -75,20 +79,31 @@ export function DemoSection() {
             aria-label={`${t.demo.watch} (${FULL_LENGTH})`}
           >
             <div data-zoom className="origin-top overflow-hidden rounded-[14px] bg-base2 will-change-transform max-sm:rounded-[8px]">
-              <video
-                ref={loopRef}
-                className="block aspect-[1280/714] w-full object-cover transition-[filter] duration-500 group-hover:brightness-75"
-                poster="/media/fiple-demo-poster.jpg"
-                muted
-                loop
-                playsInline
-                autoPlay
-                preload="metadata"
-                aria-hidden="true"
-              >
-                <source src="/media/fiple-demo-hevc.mp4" type='video/mp4; codecs="hvc1"' />
-                <source src="/media/fiple-demo.mp4" type="video/mp4" />
-              </video>
+              {coarse ? (
+                <img
+                  src={POSTER}
+                  alt={t.demo.eyebrow}
+                  className="block aspect-[1280/714] w-full object-cover"
+                  width={1280}
+                  height={714}
+                  loading="lazy"
+                />
+              ) : (
+                <video
+                  ref={loopRef}
+                  className="block aspect-[1280/714] w-full object-cover transition-[filter] duration-500 group-hover:brightness-75"
+                  poster={POSTER}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  preload="metadata"
+                  aria-hidden="true"
+                >
+                  <source src="/media/fiple-demo-hevc.mp4" type='video/mp4; codecs="hvc1"' />
+                  <source src="/media/fiple-demo.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
             {/* Play affordance — big and obvious, like a real video player */}
             <span className="pointer-events-none absolute inset-0 grid place-items-center">
@@ -122,7 +137,7 @@ export function DemoSection() {
             controls
             playsInline
             preload="auto"
-            poster="/media/fiple-demo-poster.jpg"
+            poster={POSTER}
             onClick={(e) => e.stopPropagation()}
           >
             <source src="/media/fiple-demo-full-hevc.mp4" type='video/mp4; codecs="hvc1"' />

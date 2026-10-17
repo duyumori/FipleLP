@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { ArrowUp, Send } from "lucide-react";
 import icon from "../assets/fiple-icon.png";
@@ -48,6 +48,9 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   const trackRef = useRef<HTMLElement>(null);
   const veilRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  // The crater is desktop-only: on touch a WebGL context (programs, textures, GPU memory)
+  // would be created just to sit behind a CSS `display: none` — the flat panel carries it.
+  const [crater] = useState(() => window.matchMedia("(pointer: fine)").matches);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -55,21 +58,10 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fine = window.matchMedia("(pointer: fine)").matches;
 
-    // Phones get the simple version: no entry animation at all. The veil stays as a DOM
-    // marker for the header's dark-text flip but paints nothing (coarse CSS makes its
-    // background transparent) — the flat panel below carries the visuals.
-    if (!fine) {
-      if (veilRef.current) {
-        veilRef.current.style.opacity = "1";
-        veilRef.current.style.visibility = "visible";
-      }
-      if (frameRef.current) {
-        frameRef.current.style.opacity = "1";
-        frameRef.current.style.transform = "none";
-        frameRef.current.style.pointerEvents = "auto";
-      }
-      return;
-    }
+    // Phones get the light version of the entry: the same veil dissolve + frame rise,
+    // but driven by cheap opacity/transform writes (the loop parks once converged).
+    // The WebGL crater itself is desktop-only — on touch it is not even mounted (below),
+    // the flat dark panel carries the visuals.
 
     const target = { mx: 0, my: 0 };
 
@@ -175,10 +167,9 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     <footer ref={trackRef} className={`relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
       {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
       <div className="sticky top-0 h-svh overflow-hidden">
-        <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />
-        {/* Phones swap the crater for a flat dark panel (see the coarse media query) — the
-            entry then reads as a plain dark section instead of a black slab chasing light
-            grey, and the footer costs zero raster work. */}
+        {crater && <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />}
+        {/* Phones swap the crater for a flat dark panel — the entry reads as a plain dark
+            section boundary, and the footer costs zero WebGL/raster work. */}
         <div data-foot-flat className="absolute inset-0 hidden bg-[linear-gradient(to_bottom,#171614_0%,#100f0f_100%)]" aria-hidden="true" />
         <div
           data-foot-shade
