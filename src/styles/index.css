@@ -122,7 +122,7 @@ textarea:focus-visible {
 }
 
 /*
- * Touch layouts use crisp pre-rendered artwork and a short, clipped hero handoff.
+ * Touch layouts use crisp pre-rendered artwork and a full-screen dissolve.
  * Keep expensive reveal/backdrop filters out of their scrolling layers.
  */
 @media (hover: none) and (pointer: coarse) {
@@ -131,13 +131,21 @@ textarea:focus-visible {
     pointer-events: none;
   }
   .hero-track > section {
+    /* Cover Safari even after its toolbar retracts. Keep this height stable while
+       scrolling; the text stays inside the smaller, always-visible frame below. */
+    height: 100lvh;
     background: #111;
-    will-change: clip-path;
+    will-change: opacity;
     pointer-events: auto;
+  }
+  [data-hero-frame] {
+    height: 100svh;
+    flex: none;
+    bottom: auto;
   }
   [data-hero-surface] {
     background: #f9f9f6;
-    will-change: transform;
+    will-change: opacity, transform;
   }
   /* A calm paper wash keeps the intro's copy clear of the contour edges. */
   [data-hero-surface]::after {
@@ -153,6 +161,7 @@ textarea:focus-visible {
     height: 150svh;
   }
   .manifesto > div {
+    height: 100lvh;
     padding-block: 72px 32px;
   }
   /* Phones get the simple version: reveals and staggered word rises render fully visible
