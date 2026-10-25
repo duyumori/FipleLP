@@ -31,7 +31,12 @@ test("plain mobile scrolling does not repeatedly measure header zones", async ({
     return top;
   });
   await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
+  // Wait for the section-entry observer and its visible color transition before
+  // measuring scrolling *within* the section. Navigation itself may scan once.
+  await expect(page.locator("header")).toHaveCSS("color", "rgb(255, 255, 255)");
   const reads = await page.evaluate(async () => {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
     let count = 0;
     const original = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function () {
@@ -48,10 +53,7 @@ test("plain mobile scrolling does not repeatedly measure header zones", async ({
       Element.prototype.getBoundingClientRect = original;
     }
   });
-  // WebKit can deliver the observer notification for entering this section after
-  // the programmatic scroll settles. Allow that single check (three reads),
-  // while rejecting the old per-frame scan (63 reads over this same gesture).
-  expect(reads).toBeLessThanOrEqual(3);
+  expect(reads).toBe(0);
 });
 
 test("mobile footer artwork covers its links without an empty scroll track", async ({ page, isMobile }) => {
