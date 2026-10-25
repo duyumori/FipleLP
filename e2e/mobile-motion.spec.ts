@@ -24,11 +24,13 @@ test("plain mobile scrolling does not repeatedly measure header zones", async ({
   test.skip(!isMobile, "Desktop retains its animated footer tracking");
   await page.goto("/");
   await expect(page.locator("h1")).toBeVisible();
-  await page.evaluate(() => {
+  const target = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
-    document.querySelector("#mac")!.scrollIntoView();
+    const top = scrollY + document.querySelector("#mac")!.getBoundingClientRect().top;
+    window.scrollTo({ top, behavior: "instant" });
+    return top;
   });
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
   const reads = await page.evaluate(async () => {
     let count = 0;
     const original = Element.prototype.getBoundingClientRect;
@@ -46,7 +48,10 @@ test("plain mobile scrolling does not repeatedly measure header zones", async ({
       Element.prototype.getBoundingClientRect = original;
     }
   });
-  expect(reads).toBe(0);
+  // WebKit can deliver the observer notification for entering this section after
+  // the programmatic scroll settles. Allow that single check (three reads),
+  // while rejecting the old per-frame scan (63 reads over this same gesture).
+  expect(reads).toBeLessThanOrEqual(3);
 });
 
 test("mobile footer artwork covers its links without an empty scroll track", async ({ page, isMobile }) => {
