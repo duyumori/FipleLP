@@ -1,5 +1,17 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test("touch pages have no continuously running decorative animations", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop keeps the animated demo indicator");
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  // The demo indicator used to keep ticking even while the user scrolled through
+  // other sections, causing a style recalculation on every animation frame.
+  const loops = await page.evaluate(() => document.getAnimations()
+    .filter(animation => animation.playState === "running" && animation.effect?.getTiming().iterations === Infinity)
+    .map(animation => (animation as CSSAnimation).animationName));
+  expect(loops).toEqual([]);
+});
+
 test("mobile screenshots reserve their space before loading", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile screenshots are in the page flow");
   await page.route(/app-(home|pairing|mac|mac-devices)[^/]*\.webp/, route => route.abort());

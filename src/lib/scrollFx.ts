@@ -17,18 +17,6 @@ export function useScrollFx(key: unknown) {
     const coarse = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
     const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          e.target.classList.add("is-in");
-          io.unobserve(e.target);
-        }
-      },
-      { rootMargin: "0px 0px -10% 0px" },
-    );
-    reveals.forEach((el) => (reduced ? el.classList.add("is-in") : io.observe(el)));
-
     const brights = [...document.querySelectorAll<HTMLElement>("[data-brighten]")];
     const zooms = [...document.querySelectorAll<HTMLElement>("[data-zoom]")];
     if (reduced || coarse) {
@@ -40,8 +28,22 @@ export function useScrollFx(key: unknown) {
       reveals.forEach((el) => el.classList.add("is-in"));
       brights.forEach((el) => (el.style.opacity = "1"));
       zooms.forEach((el) => (el.style.transform = ""));
-      return () => io.disconnect();
+      return;
     }
+
+    // Only desktop needs reveal tracking. Static touch/reduced-motion blocks
+    // should never enqueue observer callbacks or class writes while scrolling.
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add("is-in");
+          io.unobserve(e.target);
+        }
+      },
+      { rootMargin: "0px 0px -10% 0px" },
+    );
+    reveals.forEach((el) => io.observe(el));
     let raf = 0;
     const update = () => {
       raf = 0;

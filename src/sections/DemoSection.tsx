@@ -118,7 +118,9 @@ export function DemoSection() {
             </span>
           </button>
           <span className={`pointer-events-none absolute right-[clamp(20px,3vw,52px)] bottom-[clamp(20px,3vw,52px)] inline-flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-white backdrop-blur ${meta}`}>
-            <span className="size-1.5 animate-pulse rounded-full bg-[#ff453a]" aria-hidden="true" />
+            {/* The mobile poster is static. A looping badge kept recalculating styles
+                across the whole page, including while this section was offscreen. */}
+            <span className={`size-1.5 rounded-full bg-[#ff453a] ${coarse ? "" : "animate-pulse"}`} aria-hidden="true" />
             {t.demo.eyebrow}
           </span>
         </div>
