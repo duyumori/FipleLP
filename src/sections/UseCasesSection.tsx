@@ -12,7 +12,7 @@ export function UseCasesSection() {
   const t = useT();
   const [first, ...rest] = t.useCases.title.split(/(?<=\.)\s+/);
   return (
-    <section className="relative h-[150svh]" aria-label={t.useCases.eyebrow}>
+    <section className="manifesto relative h-[150svh]" aria-label={t.useCases.eyebrow}>
       <div className="sticky top-0 flex h-svh flex-col items-center justify-center px-6 text-center max-sm:px-4">
         <img src={icon} alt="" className="size-11 opacity-90" width={44} height={44} />
         <p className={`mt-8 text-muted ${meta}`}>{t.useCases.eyebrow}</p>

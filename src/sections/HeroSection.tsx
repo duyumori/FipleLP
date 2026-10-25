@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Apple, ArrowDown } from "lucide-react";
 import appHome from "../assets/app-home.webp";
 import { HeroBackdrop } from "../components/HeroBackdrop";
+import { MobileBackdrop } from "../components/MobileBackdrop";
 import type { HeroMotion } from "../components/HeroBackdrop";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL } from "../lib/links";
@@ -29,6 +30,7 @@ const DARK: [number, number] = [0.86, 1.0]; // the hole widens over the last str
 // bottom-left with one short line + CTA under it; the live surface gets the rest of the screen.
 export function HeroSection() {
   const t = useT();
+  const [touch] = useState(() => window.matchMedia("(hover: none) and (pointer: coarse)").matches);
   const trackRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
@@ -90,13 +92,17 @@ export function HeroSection() {
       // raw (unsmoothed) progress too, so a fast scroll can never unpin the hero half-open.
       const dark = smooth(DARK[0], DARK[1], Math.max(p, rawP));
       motion.current.dark = dark;
-      // The touch/reduced-motion shader is frozen. Fade its layer instead of waiting
-      // for a hole it cannot draw, then restore it naturally when scrolling back up.
+      // Touch fades into the stage's opaque dark background, then scrolls normally
+      // into the next section. Its text never shows through the hero's artwork.
+      // Reduced-motion desktop keeps the existing layered exit with a still surface.
       if (staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
+      if (touch && !reduced && backdropRef.current) {
+        backdropRef.current.style.transform = `translate3d(0, ${-p * 20}px, 0) scale(1.08)`;
+      }
       // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
       const stage = stageRef.current;
       if (stage) {
-        stage.style.visibility = dark > 0.995 ? "hidden" : "visible";
+        stage.style.visibility = !touch && dark > 0.995 ? "hidden" : "visible";
         stage.style.pointerEvents = dark > 0.5 ? "none" : "";
       }
       // Invisible marker the header reads to flip to light text once the dark page dominates.
@@ -104,13 +110,17 @@ export function HeroSection() {
       // so a lagging value could leave the header stuck in its light-text mode back at the top.
       if (darkRef.current) darkRef.current.style.opacity = String(smooth(DARK[0], DARK[1], rawP));
 
-      // Phrases swap in the centre: rise + unblur in, lift + blur out. The last one sinks into the hole.
+      // Desktop's last phrase sinks into the hole. Touch keeps it as a readable
+      // closing statement on the dark stage, which then scrolls away normally.
       const last = phraseRefs.current.length - 1;
       phraseRefs.current.forEach((el, i) => {
         if (!el) return;
         const local = (p - (SCENE_START + i * SCENE_SPAN)) / SCENE_SPAN;
         const fadeIn = smooth(0, 0.3, local);
-        const fadeOut = i === last ? smooth(DARK[0], DARK[0] + 0.05, p) : smooth(0.7, 1, local);
+        const fadeOut = i === last
+          ? touch ? 0 : smooth(DARK[0], DARK[0] + 0.05, p)
+          : smooth(0.7, 1, local);
+        if (touch && i === last) el.style.color = dark > 0.58 ? "#ececea" : "";
         const o = fadeIn * (1 - fadeOut);
         if (o < 0.01) {
           // Off-stage phrases: hide once and skip the per-frame transform/blur writes.
@@ -205,14 +215,14 @@ export function HeroSection() {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pointermove", onPointer);
     };
-  }, []);
+  }, [touch]);
 
   return (
     // Tall scroll track; the screen inside stays pinned while the scene plays.
-    <div ref={trackRef} className="relative z-10 h-[480svh]" id="top">
+    <div ref={trackRef} className="hero-track relative z-10 h-[480svh]" id="top">
       <section ref={stageRef} className="sticky top-0 isolate flex h-svh flex-col overflow-hidden">
-        <div ref={backdropRef} className="absolute inset-0 -z-10">
-          <HeroBackdrop motion={motion} className="h-full w-full" />
+        <div ref={backdropRef} data-hero-surface className="absolute inset-0 -z-10">
+          {touch ? <MobileBackdrop variant="hero" /> : <HeroBackdrop motion={motion} className="h-full w-full" />}
         </div>
         <div ref={darkRef} className="pointer-events-none absolute inset-0 opacity-0" data-header-dark aria-hidden="true" />
 
@@ -271,6 +281,7 @@ export function HeroSection() {
           {t.hero.scene.map((line, i) => (
             <p
               key={i}
+              data-hero-phrase={i}
               ref={(el) => {
                 phraseRefs.current[i] = el;
               }}

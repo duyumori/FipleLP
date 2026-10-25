@@ -1,5 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test("mobile sections do not overlap the hero and the footer fits its content", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop retains its pinned scenes");
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  const layout = await page.evaluate(() => ({
+    heroBottom: document.querySelector("#top")!.getBoundingClientRect().bottom,
+    contentTop: document.querySelector(".theme-dark")!.getBoundingClientRect().top,
+    footerHeight: document.querySelector("footer")!.getBoundingClientRect().height,
+    viewportHeight: window.innerHeight,
+  }));
+  expect(layout.contentTop).toBeGreaterThanOrEqual(layout.heroBottom - 1);
+  expect(layout.footerHeight).toBeLessThan(layout.viewportHeight * 1.2);
+  await expect(page.locator('footer img[data-static-backdrop="footer"]')).toHaveCount(1);
+});
+
 async function scrollHero(page: Page, progress: number) {
   await page.evaluate((p) => {
     document.documentElement.style.scrollBehavior = "auto";
@@ -9,12 +24,11 @@ async function scrollHero(page: Page, progress: number) {
   }, progress);
 }
 
-// Measure the opacity of the surface including its wrappers, independently of where
-// the fade is implemented. The original frozen canvas stayed fully opaque until hidden.
+// The surface fades to an opaque dark stage on touch, keeping the next section separate.
 async function surfaceOpacity(page: Page) {
-  return page.locator("#top canvas").evaluate((canvas) => {
+  return page.locator("[data-hero-surface]").evaluate((surface) => {
     let opacity = 1;
-    for (let el: Element | null = canvas; el && el.id !== "top"; el = el.parentElement) {
+    for (let el: Element | null = surface; el && el.id !== "top"; el = el.parentElement) {
       opacity *= Number(getComputedStyle(el).opacity);
     }
     return opacity;
@@ -22,7 +36,7 @@ async function surfaceOpacity(page: Page) {
 }
 
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
-  test(`static hero fades into content and restores on reverse scroll (${reducedMotion})`, async ({ page, isMobile }) => {
+  test(`static hero fades cleanly and restores on reverse scroll (${reducedMotion})`, async ({ page, isMobile }) => {
     test.skip(!isMobile && reducedMotion !== "reduce", "Desktop uses the animated shader exit");
     await page.emulateMedia({ reducedMotion });
     await page.goto("/");
@@ -34,7 +48,14 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(page.locator("#top > section")).toBeVisible();
 
     await scrollHero(page, 1);
-    await expect(page.locator("#top > section")).toBeHidden();
+    if (isMobile) {
+      await expect(page.locator("#top > section")).toHaveCSS("background-color", "rgb(17, 17, 17)");
+      await expect(page.locator("[data-hero-phrase]").last()).toHaveCSS("opacity", "1");
+      await expect(page.locator("[data-hero-phrase]").last()).toHaveCSS("color", "rgb(236, 236, 234)");
+      await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.01);
+    } else {
+      await expect(page.locator("#top > section")).toBeHidden();
+    }
     await scrollHero(page, 0);
     await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.99);
     await expect(page.locator("h1")).toBeVisible();
@@ -51,12 +72,23 @@ test("touch phone animation has no blur or drop-shadow filters", async ({ page, 
     [...img.parentElement!.querySelectorAll("*")].map((el) => getComputedStyle(el).filter),
   );
   expect(filters.every((filter) => filter === "none")).toBe(true);
-  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  const artwork = page.locator('[data-static-backdrop="hero"]');
+  await expect(artwork).toBeVisible();
+  await expect(artwork).toHaveJSProperty("complete", true);
+  const resolution = await artwork.evaluate(async (node) => {
+    const image = node as HTMLImageElement;
+    const bitmap = await createImageBitmap(await (await fetch(image.currentSrc)).blob());
+    const result = { pixels: bitmap.width, required: Math.ceil(innerWidth * devicePixelRatio) };
+    bitmap.close();
+    return result;
+  });
+  expect(resolution.pixels).toBeGreaterThanOrEqual(resolution.required);
   await expect(page.locator("video")).toHaveCount(0);
 });
 
-test("header follows the visible hero and stays readable on the flat footer", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "The flat footer is touch-only");
+test("header follows the visible hero and stays readable on the textured footer", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "The textured compact footer is touch-only");
   await page.goto("/");
   await scrollHero(page, 0.87);
   // Let the scroll handlers, color transition and the header's delayed check finish.
