@@ -15,7 +15,7 @@ export function MobileBackdrop({ variant }: { variant: "hero" | "footer" }) {
       srcSet={`${small} 768w, ${large} 1440w`}
       sizes="100vw"
       width={1440}
-      height={hero ? 2560 : 960}
+      height={hero ? 2560 : 1800}
       className="h-full w-full object-cover"
       alt=""
       aria-hidden="true"

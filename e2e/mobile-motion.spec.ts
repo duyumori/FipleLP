@@ -1,17 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 
-test("mobile sections do not overlap the hero and the footer fits its content", async ({ page, isMobile }) => {
+test("mobile footer artwork covers its links without an empty scroll track", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Desktop retains its pinned scenes");
   await page.goto("/");
   await expect(page.locator("h1")).toBeVisible();
   const layout = await page.evaluate(() => ({
-    heroBottom: document.querySelector("#top")!.getBoundingClientRect().bottom,
-    contentTop: document.querySelector(".theme-dark")!.getBoundingClientRect().top,
     footerHeight: document.querySelector("footer")!.getBoundingClientRect().height,
+    artworkHeight: document.querySelector(".footer-art")!.getBoundingClientRect().height,
+    linkHeights: [...document.querySelectorAll("footer nav a, .footer-socials a")].map(a => a.getBoundingClientRect().height),
     viewportHeight: window.innerHeight,
+    width: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
   }));
-  expect(layout.contentTop).toBeGreaterThanOrEqual(layout.heroBottom - 1);
   expect(layout.footerHeight).toBeLessThan(layout.viewportHeight * 1.2);
+  expect(layout.artworkHeight).toBeGreaterThanOrEqual(layout.footerHeight);
+  expect(layout.linkHeights.every(height => height >= 44)).toBe(true);
+  expect(layout.scrollWidth).toBe(layout.width);
   await expect(page.locator('footer img[data-static-backdrop="footer"]')).toHaveCount(1);
 });
 
@@ -24,7 +28,7 @@ async function scrollHero(page: Page, progress: number) {
   }, progress);
 }
 
-// The surface fades to an opaque dark stage on touch, keeping the next section separate.
+// Reduced-motion desktop fades the still surface; touch keeps its paper fully opaque.
 async function surfaceOpacity(page: Page) {
   return page.locator("[data-hero-surface]").evaluate((surface) => {
     let opacity = 1;
@@ -36,28 +40,46 @@ async function surfaceOpacity(page: Page) {
 }
 
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
-  test(`static hero fades cleanly and restores on reverse scroll (${reducedMotion})`, async ({ page, isMobile }) => {
+  test(`hero handoff reveals readable content and restores on reverse scroll (${reducedMotion})`, async ({ page, isMobile }) => {
     test.skip(!isMobile && reducedMotion !== "reduce", "Desktop uses the animated shader exit");
     await page.emulateMedia({ reducedMotion });
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();
 
     await scrollHero(page, 0.93);
-    await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.4);
-    await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.6);
+    if (isMobile) {
+      await expect.poll(() => surfaceOpacity(page)).toBe(1);
+      await expect(page.locator("[data-hero-phrase]").last()).toBeHidden();
+      // Check actual hit-testing through the clip: the new section must be exposed,
+      // not merely present in the DOM behind an opaque or grey hero layer.
+      await expect.poll(() => page.evaluate(() => {
+        const stage = document.querySelector<HTMLElement>("#top > section")!;
+        const pointerEvents = stage.style.pointerEvents;
+        stage.style.pointerEvents = "auto";
+        const exposed = !!document.elementFromPoint(innerWidth / 2, innerHeight * 0.6)?.closest(".manifesto");
+        stage.style.pointerEvents = pointerEvents;
+        return exposed;
+      })).toBe(true);
+    } else {
+      await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.4);
+      await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.6);
+    }
     await expect(page.locator("#top > section")).toBeVisible();
 
     await scrollHero(page, 1);
+    await expect(page.locator("#top > section")).toBeHidden();
     if (isMobile) {
-      await expect(page.locator("#top > section")).toHaveCSS("background-color", "rgb(17, 17, 17)");
-      await expect(page.locator("[data-hero-phrase]").last()).toHaveCSS("opacity", "1");
-      await expect(page.locator("[data-hero-phrase]").last()).toHaveCSS("color", "rgb(236, 236, 234)");
-      await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.01);
-    } else {
-      await expect(page.locator("#top > section")).toBeHidden();
+      const copy = await page.locator(".manifesto > div").evaluate(el => ({
+        headingTop: el.querySelector("h2")!.getBoundingClientRect().top,
+        copyBottom: el.querySelector("p:last-child")!.getBoundingClientRect().bottom,
+        height: innerHeight,
+      }));
+      expect(copy.headingTop).toBeGreaterThan(64);
+      expect(copy.copyBottom).toBeLessThan(copy.height);
     }
     await scrollHero(page, 0);
     await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.99);
+    await expect(page.locator("#top > section")).toBeVisible();
     await expect(page.locator("h1")).toBeVisible();
   });
 }
@@ -94,10 +116,34 @@ test("header follows the visible hero and stays readable on the textured footer"
   // Let the scroll handlers, color transition and the header's delayed check finish.
   await page.waitForTimeout(800);
   await expect(page.locator("header")).toHaveCSS("color", "rgb(17, 17, 17)");
+  await scrollHero(page, 1);
+  await expect(page.locator("header")).toHaveCSS("color", "rgb(255, 255, 255)");
   await page.evaluate(() => window.scrollTo(0, document.querySelector("footer")!.offsetTop));
   await page.waitForTimeout(800);
   await expect(page.locator("footer nav")).toBeVisible();
   await expect(page.locator("header")).toHaveCSS("color", "rgb(255, 255, 255)");
   await scrollHero(page, 0);
   await expect(page.locator("header")).toHaveCSS("color", "rgb(17, 17, 17)");
+});
+
+test("the handoff fits a small phone and survives rotation with translated copy", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Touch layout only");
+  await page.addInitScript(() => localStorage.setItem("fiple-lang", "ru"));
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ru");
+  await page.evaluate(() => document.fonts.ready);
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await scrollHero(page, 1);
+    await expect(page.locator("#top > section")).toBeHidden();
+    const layout = await page.locator(".manifesto > div").evaluate(el => ({
+      headingTop: el.querySelector("h2")!.getBoundingClientRect().top,
+      copyBottom: el.querySelector("p:last-child")!.getBoundingClientRect().bottom,
+      width: document.documentElement.scrollWidth,
+    }));
+    expect(layout.headingTop).toBeGreaterThan(64);
+    expect(layout.copyBottom).toBeLessThan(viewport.height);
+    expect(layout.width).toBe(viewport.width);
+  }
 });

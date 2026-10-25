@@ -122,19 +122,22 @@ textarea:focus-visible {
 }
 
 /*
- * Touch layouts use crisp pre-rendered artwork, shorter scenes and normal document flow.
+ * Touch layouts use crisp pre-rendered artwork and a short, clipped hero handoff.
  * Keep expensive reveal/backdrop filters out of their scrolling layers.
  */
 @media (hover: none) and (pointer: coarse) {
   .hero-track {
     height: 360svh;
+    pointer-events: none;
   }
   .hero-track > section {
     background: #111;
+    will-change: clip-path;
+    pointer-events: auto;
   }
   [data-hero-surface] {
     background: #f9f9f6;
-    will-change: opacity, transform;
+    will-change: transform;
   }
   /* A calm paper wash keeps the intro's copy clear of the contour edges. */
   [data-hero-surface]::after {
@@ -144,16 +147,13 @@ textarea:focus-visible {
     background: linear-gradient(to bottom, transparent 35%, rgb(249 249 246 / 18%) 55%, #f9f9f6 100%);
   }
   .inner-pages {
-    margin-top: 0;
+    margin-top: -150svh;
   }
   .manifesto {
-    height: auto;
+    height: 150svh;
   }
   .manifesto > div {
-    position: relative;
-    height: auto;
-    min-height: 80svh;
-    padding-block: 80px;
+    padding-block: 72px 32px;
   }
   /* Phones get the simple version: reveals and staggered word rises render fully visible
      with no transition, the page is plain scroll without per-frame text gains. */
@@ -187,13 +187,13 @@ textarea:focus-visible {
   .footer-stage {
     position: relative;
     height: auto;
-    padding-top: clamp(160px, 24svh, 220px);
+    padding-top: 64px;
   }
   .footer-art {
-    height: 360px;
+    height: 100%;
   }
   footer [data-foot-shade] {
-    background: linear-gradient(to bottom, #111, transparent 64px, rgb(17 17 17 / 15%) 120px, #111 340px);
+    background: linear-gradient(to bottom, #111, rgb(17 17 17 / 20%) 96px, rgb(17 17 17 / 30%) 55%, rgb(17 17 17 / 70%) 100%);
   }
   .footer-links {
     position: relative;
@@ -201,7 +201,7 @@ textarea:focus-visible {
     padding-bottom: max(24px, env(safe-area-inset-bottom));
   }
   .footer-links > .grid {
-    row-gap: 28px;
+    row-gap: 24px;
   }
   .footer-brand {
     grid-column: 1 / 9;
@@ -210,20 +210,59 @@ textarea:focus-visible {
     grid-column: 9 / -1;
     grid-row: 1;
     align-self: center;
+    gap: 4px;
+  }
+  .footer-socials a {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
   }
   .footer-links nav {
     grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 20px;
-    font-size: 11px;
+    font-size: 12px;
+    color: #f5f5f3;
+  }
+  .footer-links nav > div {
+    gap: 0;
   }
   .footer-links nav a {
     display: flex;
     align-items: center;
-    min-height: 32px;
+    min-height: 44px;
   }
   .footer-contact {
-    margin-top: 28px;
+    margin-top: 24px;
+    gap: 16px;
+  }
+  .footer-contact > p {
+    color: rgb(255 255 255 / 80%);
+  }
+  .footer-contact > a {
+    min-height: 44px;
+  }
+}
+
+/* Keep the pinned handoff readable when a phone is turned sideways. */
+@media (hover: none) and (pointer: coarse) and (max-height: 540px) {
+  .manifesto > div {
+    padding-block: 68px 20px;
+  }
+  .manifesto img {
+    width: 28px;
+    height: 28px;
+  }
+  .manifesto h2 {
+    font-size: 32px;
+    margin-top: 12px;
+  }
+  .manifesto p {
+    margin-top: 12px;
+  }
+  .manifesto p:last-child {
+    font-size: 12px;
   }
 }
 

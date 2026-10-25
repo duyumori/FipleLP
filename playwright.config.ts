@@ -23,6 +23,11 @@ export default defineConfig({
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "mobile-webkit",
+      testMatch: "mobile-motion.spec.ts",
+      use: { ...devices["iPhone 13 Pro Max"], browserName: "webkit" },
+    },
   ],
   // Test the real production bundle, not the dev server.
   webServer: remoteURL
