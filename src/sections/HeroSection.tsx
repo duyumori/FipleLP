@@ -25,6 +25,7 @@ const PHONE_SPAN = 0.27;
 const SCENE_START = 0.34;
 const SCENE_SPAN = 0.19;
 const DARK: [number, number] = [0.86, 1.0]; // the hole widens over the last stretch of the pin
+const TOUCH_EXIT: [number, number] = [0.84, 1];
 
 // Rhythm: a full-screen frame with 24px gutters — just the oversized light headline anchored
 // bottom-left with one short line + CTA under it; the live surface gets the rest of the screen.
@@ -90,37 +91,44 @@ export function HeroSection() {
 
       // Exit: the see-through hole (drawn by the shader) grows from 0 to full screen. Driven by the
       // raw (unsmoothed) progress too, so a fast scroll can never unpin the hero half-open.
-      const dark = smooth(DARK[0], DARK[1], Math.max(p, rawP));
+      const exit = touch ? TOUCH_EXIT : DARK;
+      const dark = smooth(exit[0], exit[1], Math.max(p, rawP));
       motion.current.dark = dark;
-      // Touch fades into the stage's opaque dark background, then scrolls normally
-      // into the next section. Its text never shows through the hero's artwork.
-      // Reduced-motion desktop keeps the existing layered exit with a still surface.
-      if (staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
+      // On touch, uncover the real next section from the bottom. Keep the paper at
+      // full contrast instead of fading the whole screen through a muddy grey.
+      // One curved clip keeps the paper-like edge, with no masks or blur passes.
+      if (!touch && staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
       if (touch && !reduced && backdropRef.current) {
         backdropRef.current.style.transform = `translate3d(0, ${-p * 20}px, 0) scale(1.08)`;
       }
       // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
       const stage = stageRef.current;
       if (stage) {
-        stage.style.visibility = !touch && dark > 0.995 ? "hidden" : "visible";
+        if (touch) stage.style.clipPath = `ellipse(125% ${(1 - dark) * 110}% at 50% 0%)`;
+        stage.style.visibility = dark > (touch ? 0.9999 : 0.995) ? "hidden" : "visible";
         stage.style.pointerEvents = dark > 0.5 ? "none" : "";
       }
-      // Invisible marker the header reads to flip to light text once the dark page dominates.
-      // Raw progress only: the smoothed value lags, and the header samples this on scroll events,
-      // so a lagging value could leave the header stuck in its light-text mode back at the top.
-      if (darkRef.current) darkRef.current.style.opacity = String(smooth(DARK[0], DARK[1], rawP));
+      // Invisible marker the header reads for contrast. Desktop uses raw progress
+      // so a lagging eased value cannot leave it white after returning to the top.
+      if (darkRef.current) {
+        // The mobile wipe reaches the header only at the very end. Its colour
+        // follows that edge, not an unrelated halfway point in the transition.
+        const headerDark = touch
+          ? Number((1 - dark) * 1.1 * (stage?.offsetHeight || window.innerHeight) <= 36)
+          : smooth(DARK[0], DARK[1], rawP);
+        darkRef.current.style.opacity = String(headerDark);
+      }
 
-      // Desktop's last phrase sinks into the hole. Touch keeps it as a readable
-      // closing statement on the dark stage, which then scrolls away normally.
+      // Finish the closing phrase before the next heading is uncovered. It keeps
+      // its ink colour throughout, including when scrolling back up.
       const last = phraseRefs.current.length - 1;
       phraseRefs.current.forEach((el, i) => {
         if (!el) return;
         const local = (p - (SCENE_START + i * SCENE_SPAN)) / SCENE_SPAN;
         const fadeIn = smooth(0, 0.3, local);
         const fadeOut = i === last
-          ? touch ? 0 : smooth(DARK[0], DARK[0] + 0.05, p)
+          ? touch ? smooth(0.81, 0.89, Math.max(p, rawP)) : smooth(DARK[0], DARK[0] + 0.05, p)
           : smooth(0.7, 1, local);
-        if (touch && i === last) el.style.color = dark > 0.58 ? "#ececea" : "";
         const o = fadeIn * (1 - fadeOut);
         if (o < 0.01) {
           // Off-stage phrases: hide once and skip the per-frame transform/blur writes.

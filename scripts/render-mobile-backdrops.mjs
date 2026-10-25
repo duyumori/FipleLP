@@ -15,13 +15,13 @@ try {
   for (const variant of ['hero', 'footer']) {
     const fragment = variant === 'footer'
       ? surface
-          .replace('vec3(0.976, 0.976, 0.965)', 'vec3(0.30, 0.31, 0.32)')
+          .replace('vec3(0.976, 0.976, 0.965)', 'vec3(0.40, 0.41, 0.42)')
           .replace('vec3(0.180, 0.176, 0.170)', 'vec3(0.075, 0.09, 0.11)')
           .replace('vec3(0.720, 0.710, 0.690)', 'vec3(0.70, 0.72, 0.74)')
           .replace('vec3(0.480, 0.475, 0.460)', 'vec3(0.36, 0.39, 0.42)')
       : surface;
     for (const width of [768, 1440]) {
-      const height = Math.round(width * (variant === 'hero' ? 16 / 9 : 2 / 3));
+      const height = Math.round(width * (variant === 'hero' ? 16 / 9 : 5 / 4));
       const dataURL = await page.evaluate(({vertex, fragment, width, height, variant}) => {
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -56,7 +56,7 @@ try {
         gl.uniform1f(u('uProgress'), 0);
         gl.uniform2f(u('uMouse'), 0, 0);
         gl.uniform1f(u('uSimH'), 1);
-        const pose = variant === 'hero' ? [0.40, 0.33, 0.4, 1.8] : [-0.12, 0.08, -0.45, 1.5];
+        const pose = variant === 'hero' ? [0.40, 0.33, 0.4, 1.8] : [0.25, 0.20, -0.45, 1.5];
         gl.uniform4f(u('uRest'), ...pose);
         gl.uniform1f(u('uSeed'), variant === 'hero' ? 0 : 17.3);
         gl.uniform1f(u('uFadeBottom'), 0);
