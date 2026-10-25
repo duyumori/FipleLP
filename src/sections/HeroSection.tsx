@@ -52,15 +52,35 @@ export function HeroSection() {
 
     const target = { mx: 0, my: 0 };
 
+    // On touch, geometry changes on rotation/layout resize, not on every scroll
+    // frame. Keep Safari's stable svh/lvh timeline without forcing a layout read.
+    let touchTop = 0;
+    let touchDistance = 0;
+    const measureTouch = () => {
+      touchTop = track.getBoundingClientRect().top + window.scrollY;
+      touchDistance = track.offsetHeight - (stageRef.current?.offsetHeight || window.innerHeight);
+    };
+    if (touch) measureTouch();
+
     const scrollProgress = () => {
-      // Touch uses the stable large-viewport stage, so Safari's collapsing toolbar
-      // neither exposes the next section early nor changes the scroll timeline.
+      if (touch) return touchDistance > 0 ? clamp01((window.scrollY - touchTop) / touchDistance) : 0;
       const distance = track.offsetHeight - (stageRef.current?.offsetHeight || window.innerHeight);
       return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 0;
     };
 
     let rawP = scrollProgress();
     let headerOnDark = false;
+    type MotionStyle = "opacity" | "transform" | "visibility" | "pointerEvents";
+    const appliedStyles = new WeakMap<HTMLElement, Partial<Record<MotionStyle, string>>>();
+    const writeStyle = (el: HTMLElement, property: MotionStyle, value: string) => {
+      if (touch) {
+        const previous = appliedStyles.get(el) ?? {};
+        if (previous[property] === value) return;
+        previous[property] = value;
+        appliedStyles.set(el, previous);
+      }
+      el.style[property] = value;
+    };
     const apply = () => {
       const { p, mx, my } = motion.current;
 
@@ -68,9 +88,9 @@ export function HeroSection() {
       const intro = 1 - smooth(0, INTRO_OUT, p);
       const introEl = introRef.current;
       if (introEl) {
-        introEl.style.opacity = String(intro);
-        introEl.style.transform = `translate3d(0, ${(1 - intro) * -60}px, 0)`;
-        introEl.style.visibility = intro < 0.02 ? "hidden" : "visible";
+        writeStyle(introEl, "opacity", String(intro));
+        writeStyle(introEl, "transform", `translate3d(0, ${(1 - intro) * -60}px, 0)`);
+        writeStyle(introEl, "visibility", intro < 0.02 ? "hidden" : "visible");
       }
       // Phone beat: rises from below into the centre, tilts toward the cursor, then lifts away.
       const phoneEl = phoneRef.current;
@@ -79,15 +99,15 @@ export function HeroSection() {
         const pin = smooth(0, 0.35, local);
         const pout = smooth(0.7, 1, local);
         const o = pin * (1 - pout);
-        phoneEl.style.opacity = String(o);
-        phoneEl.style.visibility = o < 0.01 ? "hidden" : "visible";
+        writeStyle(phoneEl, "opacity", String(o));
+        writeStyle(phoneEl, "visibility", o < 0.01 ? "hidden" : "visible");
         if (o >= 0.01) {
           const y = (1 - pin) * 45 - pout * 35; // in svh, matching the pinned stage
           // Cursor tilt is desktop-only; on touch the 3D perspective + rotate force a
           // re-raster of the big screenshot layer on every frame — plain translate/core scale.
-          phoneEl.style.transform = finePointer
+          writeStyle(phoneEl, "transform", finePointer
             ? `translate3d(${mx * 14}px, calc(${y}svh + ${my * 10}px), 0) perspective(1400px) rotateY(${mx * 9}deg) rotateX(${-my * 7}deg) scale(${0.9 + pin * 0.1})`
-            : `translate3d(0, calc(${y}svh), 0) scale(${0.9 + pin * 0.1})`;
+            : `translate3d(0, calc(${y}svh), 0) scale(${0.9 + pin * 0.1})`);
         }
       }
       if (finePointer && titleRef.current) titleRef.current.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
@@ -101,16 +121,13 @@ export function HeroSection() {
       motion.current.dark = dark;
       // First dissolve the paper onto an opaque dark stage. Only then dissolve the
       // stage to reveal the next heading: the two sections never show through each other.
-      if (staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
-      if (touch && !reduced && backdropRef.current) {
-        backdropRef.current.style.transform = `translate3d(0, ${-p * 20}px, 0) scale(1.08)`;
-      }
+      if (staticBackdrop && backdropRef.current) writeStyle(backdropRef.current, "opacity", String(1 - dark));
       // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
       const stage = stageRef.current;
       if (stage) {
-        if (touch) stage.style.opacity = String(1 - stageOut);
-        stage.style.visibility = stageOut > (touch ? 0.9999 : 0.995) ? "hidden" : "visible";
-        stage.style.pointerEvents = (touch ? stageOut > 0 : dark > 0.5) ? "none" : "";
+        if (touch) writeStyle(stage, "opacity", String(1 - stageOut));
+        writeStyle(stage, "visibility", stageOut > (touch ? 0.9999 : 0.995) ? "hidden" : "visible");
+        writeStyle(stage, "pointerEvents", (touch ? stageOut > 0 : dark > 0.5) ? "none" : "");
       }
       // Invisible marker the header reads for contrast. Desktop uses raw progress
       // so a lagging eased value cannot leave it white after returning to the top.
@@ -119,7 +136,7 @@ export function HeroSection() {
         const headerDark = touch
           ? dark
           : smooth(DARK[0], DARK[1], rawP);
-        darkRef.current.style.opacity = String(headerDark);
+        writeStyle(darkRef.current, "opacity", String(headerDark));
         // Touch headers only need a notification at the light/dark boundary,
         // not another layout scan during every animation frame.
         if (touch && headerOnDark !== (headerDark > 0.5)) {
@@ -141,14 +158,14 @@ export function HeroSection() {
         const o = fadeIn * (1 - fadeOut);
         if (o < 0.01) {
           // Off-stage phrases: hide once and skip the per-frame transform/blur writes.
-          if (el.style.visibility !== "hidden") {
-            el.style.visibility = "hidden";
-            el.style.opacity = "0";
+          if (touch || el.style.visibility !== "hidden") {
+            writeStyle(el, "visibility", "hidden");
+            writeStyle(el, "opacity", "0");
           }
           return;
         }
-        el.style.opacity = String(o);
-        el.style.transform = `translate3d(${mx * -10}px, ${(1 - fadeIn) * 40 - fadeOut * 40}px, 0)`;
+        writeStyle(el, "opacity", String(o));
+        writeStyle(el, "transform", `translate3d(${mx * -10}px, ${(1 - fadeIn) * 40 - fadeOut * 40}px, 0)`);
         if (finePointer) {
           // filter is the most expensive per-frame write (it re-rasterises the text); only
           // touch it when the value actually changed.
@@ -159,11 +176,12 @@ export function HeroSection() {
           // is the main scroll-jank source on phones. The phrases still fade + rise.
           el.style.filter = "";
         }
-        el.style.visibility = "visible";
+        writeStyle(el, "visibility", "visible");
       });
     };
 
-    // One loop: ease toward the real scroll/cursor position so everything glides.
+    // Desktop eases toward scroll/cursor input. Touch follows native scroll inertia
+    // directly, without adding more trailing frames after the finger stops.
     // It parks itself as soon as everything has converged — on an idle phone screen
     // (no scroll, no cursor) it burns zero frames instead of spinning at 60fps;
     // scroll/resize/pointer/visibility wake it again.
@@ -174,7 +192,7 @@ export function HeroSection() {
       raf = 0;
       const dt = now - lastTime;
       lastTime = now;
-      const scrollEase = reduced ? 1 : dampingFactor(0.12, dt);
+      const scrollEase = touch || reduced ? 1 : dampingFactor(0.12, dt);
       const pointerEase = dampingFactor(0.06, dt);
       const m = motion.current;
       rawP = scrollProgress();
@@ -207,7 +225,14 @@ export function HeroSection() {
       } else wake();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    const resizeObserver = touch ? new ResizeObserver(() => {
+      measureTouch();
+      wake();
+    }) : null;
+    if (resizeObserver) {
+      resizeObserver.observe(track);
+      if (stageRef.current) resizeObserver.observe(stageRef.current);
+    } else window.addEventListener("resize", onScroll);
     document.addEventListener("visibilitychange", onVis);
     if (finePointer && !reduced) window.addEventListener("pointermove", onPointer, { passive: true });
 
@@ -227,6 +252,7 @@ export function HeroSection() {
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
+      resizeObserver?.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       document.removeEventListener("visibilitychange", onVis);

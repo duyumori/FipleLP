@@ -138,7 +138,9 @@ textarea:focus-visible {
   }
   [data-hero-surface] {
     background: #f9f9f6;
-    will-change: opacity, transform;
+    /* Keep the Retina artwork still while the smaller scene elements move. */
+    transform: scale(1.08);
+    will-change: opacity;
   }
   /* A calm paper wash keeps the intro's copy clear of the contour edges. */
   [data-hero-surface]::after {
@@ -293,6 +295,9 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-hero-surface] {
+    transform: none;
+  }
   [data-reveal],
   [data-reveal="words"] .w {
     opacity: 1 !important;

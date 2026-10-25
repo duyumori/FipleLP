@@ -13,12 +13,14 @@ describe("HeroSection animation loop", () => {
   let queue = new Map<number, FrameRequestCallback>();
   let nextId = 0;
   let ioCallback: IOCallback | null = null;
+  let resizeCallback: (() => void) | null = null;
   let ms = 0;
 
   beforeEach(() => {
     queue = new Map();
     nextId = 0;
     ioCallback = null;
+    resizeCallback = null;
     ms = 0;
     vi.spyOn(performance, "now").mockImplementation(() => ms);
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
@@ -37,6 +39,11 @@ describe("HeroSection animation loop", () => {
         disconnect() {}
       },
     );
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: () => void) { resizeCallback = callback; }
+      observe() {}
+      disconnect() {}
+    });
   });
 
   afterEach(() => {
@@ -101,5 +108,40 @@ describe("HeroSection animation loop", () => {
     expect(at60).toBeLessThan(1);
     expect(opacityAfter(30)).toBeCloseTo(at60, 5);
     expect(opacityAfter(120)).toBeCloseTo(at60, 5);
+  });
+
+  it("follows touch scrolling on the next frame without a catch-up loop or layout reads", () => {
+    const originalMatchMedia = window.matchMedia;
+    vi.spyOn(window, "matchMedia").mockImplementation(query => ({
+      ...originalMatchMedia(query),
+      matches: query === "(hover: none) and (pointer: coarse)",
+    }));
+    const scroll = vi.spyOn(window, "scrollY", "get").mockReturnValue(0);
+    const view = renderWithLang(<HeroSection />);
+    const track = view.container.querySelector<HTMLElement>("#top")!;
+    const stage = track.querySelector<HTMLElement>("section")!;
+    const intro = view.getByRole("heading", { level: 1 }).parentElement!.parentElement!;
+    Object.defineProperty(track, "offsetHeight", { value: 4000 });
+    Object.defineProperty(stage, "offsetHeight", { value: 800 });
+    const bounds = vi.spyOn(track, "getBoundingClientRect").mockImplementation(() => ({ top: -window.scrollY } as DOMRect));
+    resizeCallback?.();
+    ioCallback?.([{ isIntersecting: true }]);
+    flush();
+    bounds.mockClear();
+
+    // Halfway through the intro exit: the browser already provides smooth touch
+    // inertia, so the scene must not add a second, trailing interpolation loop.
+    scroll.mockReturnValue(160);
+    window.dispatchEvent(new Event("scroll"));
+    flush(1);
+    expect(Number(intro.style.opacity)).toBeCloseTo(0.5, 5);
+    expect(queue.size).toBe(0);
+    expect(bounds).not.toHaveBeenCalled();
+
+    scroll.mockReturnValue(0);
+    window.dispatchEvent(new Event("scroll"));
+    flush(1);
+    expect(intro.style.opacity).toBe("1");
+    expect(queue.size).toBe(0);
   });
 });
