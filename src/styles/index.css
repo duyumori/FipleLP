@@ -39,25 +39,18 @@ body {
   min-width: 320px;
   color: #111111;
   background-color: #f9f9f6;
-  font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/*
- * Display headings run on Instrument Serif (400 only). The layout was written
- * for a tight sans, so the serif gets its own metric overrides here instead of
- * editing every heading: no synthetic bold, relaxed tracking, readable leading.
- */
+/* Native display typography: normal-width glyphs, stronger weight and tight tracking. */
 .font-display {
-  font-synthesis-weight: none;
-  /* Only Noto (the Cyrillic fallback) has a width axis; condensed + light, it matches the
-     narrow, airy Instrument Serif. Instrument itself ignores both. */
-  font-stretch: 72%;
-  font-weight: 300;
-  letter-spacing: -0.015em;
-  line-height: 1.04;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.07;
+  text-wrap: balance;
 }
 
 ::selection {
@@ -182,6 +175,19 @@ textarea:focus-visible {
   [data-hero-phone] > * {
     filter: none !important;
   }
+  /* Inline app previews also used desktop-sized drop-shadow filter surfaces.
+     Reserve their dimensions in HTML and scroll ordinary, unfiltered images. */
+  #how img,
+  #product img {
+    filter: none;
+    transition: none;
+  }
+  #how li {
+    transition: none;
+  }
+  #mac [data-zoom] {
+    box-shadow: none;
+  }
   /* scrollFx does nothing on coarse pointers (see scrollFx.ts), so drop the forced
      compositor layers the effects used to need. */
   [data-zoom],
@@ -196,13 +202,15 @@ textarea:focus-visible {
   .footer-stage {
     position: relative;
     height: auto;
-    padding-top: 64px;
+    padding-top: 32px;
+    border-radius: 24px 24px 0 0;
+    background: #f9f9f6;
   }
   .footer-art {
     height: 100%;
   }
   footer [data-foot-shade] {
-    background: linear-gradient(to bottom, #111, rgb(17 17 17 / 5%) 96px, rgb(17 17 17 / 8%) 55%, rgb(17 17 17 / 35%) 100%);
+    background: linear-gradient(to bottom, rgb(249 249 246 / 35%), rgb(249 249 246 / 65%) 55%, rgb(249 249 246 / 90%) 100%);
   }
   .footer-links {
     position: relative;
@@ -220,7 +228,7 @@ textarea:focus-visible {
     grid-row: 1;
     align-self: center;
     gap: 4px;
-    color: #f5f5f3;
+    color: #2a2a2f;
   }
   .footer-socials a {
     display: grid;
@@ -233,7 +241,7 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 20px;
     font-size: 12px;
-    color: #f5f5f3;
+    color: #2a2a2f;
   }
   .footer-links nav > div {
     gap: 0;
@@ -248,10 +256,18 @@ textarea:focus-visible {
     gap: 16px;
   }
   .footer-contact > p {
-    color: rgb(255 255 255 / 80%);
+    color: #5a5a60;
   }
   .footer-contact > a {
     min-height: 44px;
+  }
+}
+
+/* Native fonts have different metrics across platforms. Leave enough room for
+   translated copy even with a wider system fallback on a narrow phone. */
+@media (hover: none) and (pointer: coarse) and (max-width: 480px) {
+  .manifesto h2 {
+    font-size: clamp(32px, 10vw, 44px);
   }
 }
 

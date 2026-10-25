@@ -48,6 +48,7 @@ export function ProductSection() {
                     src={src}
                     alt={alt}
                     loading="lazy"
+                    decoding="async"
                     width={760}
                     height={1644}
                     className="h-auto w-[min(260px,70vw)] rounded-[13%/6%] ring-1 ring-ink/10 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] [filter:drop-shadow(0_30px_60px_rgba(0,0,0,0.6))] group-hover:-translate-y-2"

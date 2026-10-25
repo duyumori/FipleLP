@@ -87,6 +87,7 @@ export function DemoSection() {
                   width={1280}
                   height={714}
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <video

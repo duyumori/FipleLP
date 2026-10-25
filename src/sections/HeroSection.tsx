@@ -6,7 +6,7 @@ import { MobileBackdrop } from "../components/MobileBackdrop";
 import type { HeroMotion } from "../components/HeroBackdrop";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL } from "../lib/links";
-import { dampingFactor } from "../lib/motion";
+import { dampingFactor, HERO_CONTRAST_EVENT } from "../lib/motion";
 import { meta } from "../lib/ui";
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -60,6 +60,7 @@ export function HeroSection() {
     };
 
     let rawP = scrollProgress();
+    let headerOnDark = false;
     const apply = () => {
       const { p, mx, my } = motion.current;
 
@@ -119,6 +120,12 @@ export function HeroSection() {
           ? dark
           : smooth(DARK[0], DARK[1], rawP);
         darkRef.current.style.opacity = String(headerDark);
+        // Touch headers only need a notification at the light/dark boundary,
+        // not another layout scan during every animation frame.
+        if (touch && headerOnDark !== (headerDark > 0.5)) {
+          headerOnDark = headerDark > 0.5;
+          window.dispatchEvent(new Event(HERO_CONTRAST_EVENT));
+        }
       }
 
       // Finish the closing phrase before the next heading is uncovered. It keeps
@@ -243,7 +250,7 @@ export function HeroSection() {
           className="flex min-h-0 flex-1 flex-col justify-end px-6 pt-[72px] pb-[clamp(40px,10svh,104px)] will-change-transform max-sm:px-4 max-sm:pt-16 max-sm:pb-12"
         >
           <div ref={titleRef}>
-            <h1 className="animate-rise font-display text-[clamp(40px,7.4vw,124px)] leading-[0.9] font-light tracking-[-0.025em] text-ink min-[941px]:whitespace-nowrap">
+            <h1 className="animate-rise font-display text-[clamp(36px,6.3vw,108px)] leading-[0.9] font-light tracking-[-0.025em] text-ink">
               {t.hero.titleLine1}
               <br />
               {t.hero.titleLine2Pre}
@@ -281,7 +288,9 @@ export function HeroSection() {
               src={appHome}
               alt="Fiple iPhone app, connected MacBook Air, the Code and Work workspaces, and the Fiple Bar"
               className="relative z-[1] h-[min(76svh,760px)] w-auto rounded-[15.4%/7.4%] [filter:drop-shadow(0_2px_6px_rgba(16,15,15,0.10))_drop-shadow(0_30px_45px_rgba(16,15,15,0.22))]"
-              width={286}
+              width={803}
+              height={1670}
+              decoding="async"
               loading="eager"
             />
           </div>
