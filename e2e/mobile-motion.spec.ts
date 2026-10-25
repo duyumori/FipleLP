@@ -20,12 +20,18 @@ test("mobile footer artwork covers its links without an empty scroll track", asy
 });
 
 async function scrollHero(page: Page, progress: number) {
-  await page.evaluate((p) => {
+  await expect(page.locator("#top > section")).toBeAttached();
+  const target = await page.evaluate((p) => {
     document.documentElement.style.scrollBehavior = "auto";
     const track = document.querySelector<HTMLElement>("#top")!;
     const stage = track.querySelector<HTMLElement>("section")!;
-    window.scrollTo(0, (track.offsetHeight - stage.offsetHeight) * p);
+    const top = scrollY + track.getBoundingClientRect().top + (track.offsetHeight - stage.offsetHeight) * p;
+    window.scrollTo({ top, behavior: "instant" });
+    return top;
   }, progress);
+  // WebKit may apply a programmatic scroll asynchronously. Observe it; do not
+  // issue repeated scrolls, which would hide a real reset by the application.
+  await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
 }
 
 // Reduced-motion desktop fades the still surface; touch keeps its paper fully opaque.
@@ -135,6 +141,12 @@ test("the handoff fits a small phone and survives rotation with translated copy"
   await page.evaluate(() => document.fonts.ready);
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
+    // The protocol resize can finish before WebKit updates its viewport units.
+    await expect.poll(() => page.evaluate(() => ({
+      width: innerWidth,
+      height: innerHeight,
+      stageHeight: document.querySelector<HTMLElement>("#top > section")!.offsetHeight,
+    }))).toEqual({ ...viewport, stageHeight: viewport.height });
     await scrollHero(page, 1);
     await expect(page.locator("#top > section")).toBeHidden();
     const layout = await page.locator(".manifesto > div").evaluate(el => ({

@@ -27,6 +27,31 @@ function renderAt(path: string, lang: Lang) {
   return renderWithLang(<App />, lang);
 }
 
+it("does not reset an early scroll when the first animation frame is delayed", () => {
+  const frames = new Map<number, FrameRequestCallback>();
+  let nextId = 0;
+  const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => {
+    frames.set(++nextId, callback);
+    return nextId;
+  });
+  const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => {
+    frames.delete(id);
+  });
+  const view = renderAt("/", "en");
+  try {
+    window.scrollTo(0, 1804);
+    // A slow first frame must not undo a user's scroll after the page has rendered.
+    const pending = [...frames.values()];
+    frames.clear();
+    pending.forEach(callback => callback(100));
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 1804);
+  } finally {
+    view.unmount();
+    raf.mockRestore();
+    cancel.mockRestore();
+  }
+});
+
 describe.each(langs)("App (%s)", (lang) => {
   const t = messages[lang];
 

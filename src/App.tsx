@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -28,19 +28,15 @@ export default function App() {
   // Reveal / brighten / zoom effects on the inner pages; re-scan when the page or language changes.
   useScrollFx(`${route}:${lang}`);
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      const sectionId = sectionIds[route as keyof typeof sectionIds];
-      if (sectionId) {
-        document.getElementById(sectionId)?.scrollIntoView();
-      } else if (route !== "home") {
-        window.scrollTo(0, 0);
-        return;
-      } else {
-        window.scrollTo(0, 0);
-      }
-    });
-    return () => cancelAnimationFrame(id);
+  useLayoutEffect(() => {
+    // Position a new route before it is painted. A deferred first-frame reset can
+    // overwrite a scroll that already happened on a slow device or in WebKit CI.
+    const sectionId = sectionIds[route as keyof typeof sectionIds];
+    if (sectionId) {
+      document.getElementById(sectionId)?.scrollIntoView();
+    } else {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
   }, [route]);
 
   if (route === "download") {
