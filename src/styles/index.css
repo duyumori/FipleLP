@@ -140,6 +140,11 @@ textarea:focus-visible {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
+  /* These move and scale throughout the hero scene. Keep the soft gradient itself,
+     but avoid large blur/drop-shadow surfaces on the moving phone layer. */
+  [data-hero-phone] > * {
+    filter: none !important;
+  }
   /* scrollFx does nothing on coarse pointers (see scrollFx.ts), so drop the forced
      compositor layers the effects used to need. */
   [data-zoom],
@@ -147,20 +152,16 @@ textarea:focus-visible {
   [data-reveal="words"] .w {
     will-change: auto;
   }
-  /* Footer on phones: no crater, no bottom shade, no black-before-grey entry — one flat
-     dark panel. Uniform = no visible "transition" while the footer rises over the light
-     section, and the WebGL surface costs nothing. */
+  /* Footer on phones: no crater, no bottom shade — one flat dark panel. Uniform = no visible
+     "transition" while the footer rises over the light section, and the WebGL surface costs
+     nothing (it is not even mounted on touch). The veil still paints: it dissolves as the
+     footer enters (cheap opacity) and signals the header to flip its text colour. */
   footer [data-backdrop],
   footer [data-foot-shade] {
     display: none !important;
   }
   footer [data-foot-flat] {
     display: block;
-  }
-  /* The veil still marks "dark here" for the header's text flip (the header checks its
-     computed opacity), but must not paint over the flat panel. */
-  footer [data-header-dark] {
-    background: transparent !important;
   }
 }
 

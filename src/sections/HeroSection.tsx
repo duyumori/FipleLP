@@ -5,6 +5,7 @@ import { HeroBackdrop } from "../components/HeroBackdrop";
 import type { HeroMotion } from "../components/HeroBackdrop";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL } from "../lib/links";
+import { dampingFactor } from "../lib/motion";
 import { meta } from "../lib/ui";
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -35,6 +36,7 @@ export function HeroSection() {
   const phraseRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const darkRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const motion = useRef<HeroMotion>({ p: 0, mx: 0, my: 0 });
 
   useEffect(() => {
@@ -42,11 +44,13 @@ export function HeroSection() {
     if (!track) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const finePointer = window.matchMedia("(pointer: fine)").matches;
+    const staticBackdrop = !finePointer || reduced;
 
     const target = { mx: 0, my: 0 };
 
     const scrollProgress = () => {
-      const distance = track.offsetHeight - window.innerHeight;
+      // Match the pinned h-svh stage, not the height of the changing mobile address bar.
+      const distance = track.offsetHeight - (stageRef.current?.offsetHeight || window.innerHeight);
       return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 0;
     };
 
@@ -72,20 +76,23 @@ export function HeroSection() {
         phoneEl.style.opacity = String(o);
         phoneEl.style.visibility = o < 0.01 ? "hidden" : "visible";
         if (o >= 0.01) {
-          const y = (1 - pin) * 45 - pout * 35; // in vh
+          const y = (1 - pin) * 45 - pout * 35; // in svh, matching the pinned stage
           // Cursor tilt is desktop-only; on touch the 3D perspective + rotate force a
           // re-raster of the big screenshot layer on every frame — plain translate/core scale.
           phoneEl.style.transform = finePointer
-            ? `translate3d(${mx * 14}px, calc(${y}vh + ${my * 10}px), 0) perspective(1400px) rotateY(${mx * 9}deg) rotateX(${-my * 7}deg) scale(${0.9 + pin * 0.1})`
-            : `translate3d(0, calc(${y}vh), 0) scale(${0.9 + pin * 0.1})`;
+            ? `translate3d(${mx * 14}px, calc(${y}svh + ${my * 10}px), 0) perspective(1400px) rotateY(${mx * 9}deg) rotateX(${-my * 7}deg) scale(${0.9 + pin * 0.1})`
+            : `translate3d(0, calc(${y}svh), 0) scale(${0.9 + pin * 0.1})`;
         }
       }
-      if (titleRef.current) titleRef.current.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
+      if (finePointer && titleRef.current) titleRef.current.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
 
       // Exit: the see-through hole (drawn by the shader) grows from 0 to full screen. Driven by the
       // raw (unsmoothed) progress too, so a fast scroll can never unpin the hero half-open.
       const dark = smooth(DARK[0], DARK[1], Math.max(p, rawP));
       motion.current.dark = dark;
+      // The touch/reduced-motion shader is frozen. Fade its layer instead of waiting
+      // for a hole it cannot draw, then restore it naturally when scrolling back up.
+      if (staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
       // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
       const stage = stageRef.current;
       if (stage) {
@@ -135,13 +142,18 @@ export function HeroSection() {
     // scroll/resize/pointer/visibility wake it again.
     let raf = 0;
     let visible = false;
-    const tick = () => {
+    let lastTime = 0;
+    const tick = (now: number) => {
       raf = 0;
+      const dt = now - lastTime;
+      lastTime = now;
+      const scrollEase = reduced ? 1 : dampingFactor(0.12, dt);
+      const pointerEase = dampingFactor(0.06, dt);
       const m = motion.current;
       rawP = scrollProgress();
-      m.p += (rawP - m.p) * (reduced ? 1 : 0.12);
-      m.mx += (target.mx - m.mx) * 0.06;
-      m.my += (target.my - m.my) * 0.06;
+      m.p += (rawP - m.p) * scrollEase;
+      m.mx += (target.mx - m.mx) * pointerEase;
+      m.my += (target.my - m.my) * pointerEase;
       apply();
       const settled =
         Math.abs(rawP - m.p) < 0.0004 &&
@@ -150,7 +162,10 @@ export function HeroSection() {
       if (!settled) raf = requestAnimationFrame(tick);
     };
     const wake = () => {
-      if (visible && !raf && !document.hidden) raf = requestAnimationFrame(tick);
+      if (visible && !raf && !document.hidden) {
+        lastTime = performance.now();
+        raf = requestAnimationFrame(tick);
+      }
     };
     const onScroll = () => wake();
     const onPointer = (e: PointerEvent) => {
@@ -196,7 +211,9 @@ export function HeroSection() {
     // Tall scroll track; the screen inside stays pinned while the scene plays.
     <div ref={trackRef} className="relative z-10 h-[480svh]" id="top">
       <section ref={stageRef} className="sticky top-0 isolate flex h-svh flex-col overflow-hidden">
-        <HeroBackdrop motion={motion} className="absolute inset-0 -z-10 h-full w-full" />
+        <div ref={backdropRef} className="absolute inset-0 -z-10">
+          <HeroBackdrop motion={motion} className="h-full w-full" />
+        </div>
         <div ref={darkRef} className="pointer-events-none absolute inset-0 opacity-0" data-header-dark aria-hidden="true" />
 
         {/* Intro screen: copy bottom-left, the live surface everywhere else */}
@@ -234,7 +251,7 @@ export function HeroSection() {
 
         {/* Scroll scene, beat 1: the real app, centre stage */}
         <div className="pointer-events-none absolute inset-0 grid place-items-center pt-[72px] max-sm:pt-16">
-          <div ref={phoneRef} className="invisible relative opacity-0 will-change-transform">
+          <div ref={phoneRef} data-hero-phone className="invisible relative opacity-0 will-change-transform">
             <div
               className="absolute top-1/2 left-1/2 h-[80%] w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-[40%] bg-[radial-gradient(circle,rgba(16,15,15,0.10),transparent_70%)] blur-2xl"
               aria-hidden="true"
