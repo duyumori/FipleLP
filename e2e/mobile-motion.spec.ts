@@ -24,12 +24,19 @@ test("plain mobile scrolling does not repeatedly measure header zones", async ({
   test.skip(!isMobile, "Desktop retains its animated footer tracking");
   await page.goto("/");
   await expect(page.locator("h1")).toBeVisible();
-  await page.evaluate(() => {
+  const target = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
-    document.querySelector("#mac")!.scrollIntoView();
+    const top = scrollY + document.querySelector("#mac")!.getBoundingClientRect().top;
+    window.scrollTo({ top, behavior: "instant" });
+    return top;
   });
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
+  // Wait for the section-entry observer and its visible color transition before
+  // measuring scrolling *within* the section. Navigation itself may scan once.
+  await expect(page.locator("header")).toHaveCSS("color", "rgb(255, 255, 255)");
   const reads = await page.evaluate(async () => {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
     let count = 0;
     const original = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function () {
