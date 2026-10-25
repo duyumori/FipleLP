@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import icon from "../assets/fiple-icon.png";
 import { useT } from "../lib/i18n";
 import { APP_STORE_URL } from "../lib/links";
+import { HERO_CONTRAST_EVENT } from "../lib/motion";
 import { LangToggle } from "./LangToggle";
 
 const navLink = "transition hover:opacity-60";
@@ -10,10 +11,11 @@ export function Header() {
   const t = useT();
   const [onDark, setOnDark] = useState(false);
   useEffect(() => {
+    const hero = document.querySelector<HTMLElement>("#top [data-header-dark]");
+    const zones = [...document.querySelectorAll<HTMLElement>("[data-header-dark]")];
     const check = () => {
       // Inner pages overlap the pinned hero. While it covers the header, only its
       // exit marker decides the color; the hidden dark page underneath must not win.
-      const hero = document.querySelector<HTMLElement>("#top [data-header-dark]");
       if (hero) {
         const r = hero.getBoundingClientRect();
         if (r.top <= 36 && r.bottom > 36) {
@@ -21,14 +23,35 @@ export function Header() {
           return;
         }
       }
-      const zones = document.querySelectorAll<HTMLElement>("[data-header-dark]");
       setOnDark(
-        [...zones].some((z) => {
+        zones.some((z) => {
           const r = z.getBoundingClientRect();
           return r.top <= 36 && r.bottom > 36 && Number(getComputedStyle(z).opacity) > 0.5;
         }),
       );
     };
+
+    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
+      // Observe the one-pixel band behind the header's centre. Normal scrolling
+      // inside a section does no JS geometry work; only crossing its edge wakes us.
+      let observer: IntersectionObserver;
+      const observe = () => {
+        observer?.disconnect();
+        observer = new IntersectionObserver(check, {
+          rootMargin: `-36px 0px -${Math.max(0, window.innerHeight - 37)}px 0px`,
+        });
+        zones.forEach(zone => observer.observe(zone));
+        check();
+      };
+      observe();
+      window.addEventListener("resize", observe);
+      window.addEventListener(HERO_CONTRAST_EVENT, check);
+      return () => {
+        observer.disconnect();
+        window.removeEventListener("resize", observe);
+        window.removeEventListener(HERO_CONTRAST_EVENT, check);
+      };
+    }
     let raf = 0;
     let settle = 0;
     // One rAF-throttled check per scroll burst — the old version ran the forced-layout

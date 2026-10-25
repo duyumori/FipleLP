@@ -32,6 +32,9 @@ export function MacShowcase() {
               alt="Fiple for macOS, showing the Code, Work, and Music workspaces, the Fiple Bar, the Terminal and Smart Trash tools, and Recent activity"
               className="block w-full"
               loading="lazy"
+              decoding="async"
+              width={1992}
+              height={1299}
             />
           </div>
         </div>

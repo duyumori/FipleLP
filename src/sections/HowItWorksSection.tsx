@@ -8,9 +8,9 @@ import { RevealWords, SectionRule, frame, h2, lead, monoBody } from "../lib/ui";
 // One visual per step, told as a chain: the Mac shows a code → you enter it on the iPhone →
 // the iPhone home with your Mac connected. (The Workspaces screenshot lives in the Mac section.)
 const VISUALS = [
-  { src: appMacDevices, alt: "Fiple for macOS, Devices: waiting for your iPhone, showing the pairing code 0089", phone: false },
-  { src: appPairing, alt: "Fiple on iPhone, scanning the local network for your Mac, with the 4-digit code", phone: true },
-  { src: appHome, alt: "Fiple on iPhone: the connected Mac, workspaces and the Fiple Bar", phone: true },
+  { src: appMacDevices, width: 1974, height: 1242, alt: "Fiple for macOS, Devices: waiting for your iPhone, showing the pairing code 0089", phone: false },
+  { src: appPairing, width: 754, height: 1585, alt: "Fiple on iPhone, scanning the local network for your Mac, with the 4-digit code", phone: true },
+  { src: appHome, width: 803, height: 1670, alt: "Fiple on iPhone: the connected Mac, workspaces and the Fiple Bar", phone: true },
 ];
 
 const phoneShadow =
@@ -26,6 +26,8 @@ export function HowItWorksSection() {
   const stepRefs = useRef<(HTMLLIElement | null)[]>([]);
 
   useEffect(() => {
+    // Touch renders all three steps inline; no active-step updates are needed.
+    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) return;
     // The step crossing the middle band of the screen is the active one.
     const io = new IntersectionObserver(
       (entries) => {
@@ -62,6 +64,9 @@ export function HowItWorksSection() {
                 src={v.src}
                 alt={v.alt}
                 loading="lazy"
+                decoding="async"
+                width={v.width}
+                height={v.height}
                 className={`absolute inset-0 m-auto max-h-full max-w-full object-contain transition-[opacity,scale,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   v.phone
                     ? `h-[92%] w-auto rounded-[13%/6.2%] ${phoneShadow}`
@@ -93,6 +98,9 @@ export function HowItWorksSection() {
                 src={VISUALS[i].src}
                 alt={VISUALS[i].alt}
                 loading="lazy"
+                decoding="async"
+                width={VISUALS[i].width}
+                height={VISUALS[i].height}
                 className={`mx-auto mt-10 hidden max-[940px]:block ${
                   VISUALS[i].phone ? `w-[240px] rounded-[13%/6.2%] ${phoneShadow}` : "w-full rounded-[8px]"
                 }`}

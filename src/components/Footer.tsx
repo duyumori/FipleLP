@@ -20,7 +20,7 @@ function LinkedinGlyph({ size = 18 }: { size?: number }) {
 }
 
 // The footer gets its own full-screen slab of the live surface — a different crater than the
-// hero — darkening toward the bottom, with the links framed by bracketed hairlines.
+// hero — softening toward the bottom, with dark links framed by bracketed hairlines.
 const FOOTER_POSE: BackdropPose = { center: [-0.1, 0.45], angle: -0.6, squash: 1.5, seed: 17.3, fadeBottom: false };
 const SUPPORT_EMAIL = "support@fiple.app";
 
@@ -175,7 +175,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   };
 
   return (
-    <footer ref={trackRef} data-header-dark={!crater || undefined} className={`site-footer relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
+    <footer ref={trackRef} className={`site-footer relative isolate text-ink ${reveal ? "h-[190svh]" : "h-svh"}`}>
       {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
       <div ref={stageRef} className="footer-stage sticky top-0 h-svh overflow-hidden">
         {crater
@@ -183,7 +183,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
           : <div className="footer-art absolute inset-x-0 top-0"><MobileBackdrop variant="footer" /></div>}
         <div
           data-foot-shade
-          className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(16,15,15,0.5)_72%,rgba(16,15,15,0.86))]"
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(249,249,246,0.6)_72%,rgba(249,249,246,0.92))]"
           aria-hidden="true"
         />
         {reveal && crater && <div ref={veilRef} className="absolute inset-0 bg-ink" data-header-dark aria-hidden="true" />}
@@ -194,7 +194,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
           className={`footer-links absolute inset-x-0 bottom-0 px-6 pb-6 max-sm:px-4 ${reveal && crater ? "pointer-events-none opacity-0 will-change-transform" : ""}`}
         >
           {/* Top bracket */}
-          <div className="h-[6px] rounded-t-[4px] border-x border-t border-white/40" aria-hidden="true" />
+          <div className="h-[6px] rounded-t-[4px] border-x border-t border-ink/20" aria-hidden="true" />
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-10 px-5 pt-5 max-sm:px-1">
             <a
@@ -209,7 +209,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
 
             {/* Two columns: the product pages, then support and legal */}
             <nav
-              className={`col-span-5 col-start-6 grid grid-cols-2 gap-x-6 gap-y-2 text-white/85 ${meta} text-[12px] max-[940px]:col-span-8 max-[940px]:col-start-1 max-sm:grid-cols-1 max-sm:gap-y-8`}
+              className={`col-span-5 col-start-6 grid grid-cols-2 gap-x-6 gap-y-2 text-ink2 ${meta} text-[12px] max-[940px]:col-span-8 max-[940px]:col-start-1 max-sm:grid-cols-1 max-sm:gap-y-8`}
               aria-label="Footer"
             >
               <div className="grid content-start gap-2">
@@ -224,7 +224,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
               </div>
             </nav>
 
-            <div className="footer-socials col-span-2 col-start-11 flex justify-end gap-4 self-start text-white/75 max-[940px]:col-span-4 max-[940px]:col-start-9">
+            <div className="footer-socials col-span-2 col-start-11 flex justify-end gap-4 self-start text-ink2 max-[940px]:col-span-4 max-[940px]:col-start-9">
               <a className={link} href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram — @maksatovdias">
                 <Send size={19} />
               </a>
@@ -235,9 +235,9 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
           </div>
 
           <div className="footer-contact mt-16 flex items-baseline justify-between gap-6 px-5 pb-5 max-sm:mt-12 max-sm:flex-col max-sm:items-start max-sm:px-1">
-            <p className="text-[15px] font-light text-white/60">
+            <p className="text-[15px] font-light text-muted">
               {t.footer.getInTouch}{" "}
-              <a className={`text-white ${link}`} href={`mailto:${SUPPORT_EMAIL}`}>
+              <a className={`text-ink ${link}`} href={`mailto:${SUPPORT_EMAIL}`}>
                 {SUPPORT_EMAIL}
               </a>
             </p>
@@ -248,7 +248,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
           </div>
 
           {/* Bottom bracket */}
-          <div className="h-[6px] rounded-b-[4px] border-x border-b border-white/40" aria-hidden="true" />
+          <div className="h-[6px] rounded-b-[4px] border-x border-b border-ink/20" aria-hidden="true" />
         </div>
       </div>
     </footer>

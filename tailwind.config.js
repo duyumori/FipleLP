@@ -21,11 +21,11 @@ export default {
         greenSoft: "var(--c-line)",
       },
       fontFamily: {
-        sans: ['"Geist"', "system-ui", "-apple-system", '"Segoe UI"', "Roboto", "sans-serif"],
-        // Instrument Serif has no Cyrillic; RU/KZ glyphs fall through to condensed Noto Serif Display.
-        display: ['"Instrument Serif"', '"Noto Serif Display"', "Georgia", '"Times New Roman"', "serif"],
-        body: ['"Geist"', "system-ui", "-apple-system", '"Segoe UI"', "Roboto", "sans-serif"],
-        mono: ['"Geist Mono"', "ui-monospace", "SFMono-Regular", '"SF Mono"', "Menlo", "monospace"],
+        // Resolve to San Francisco on Apple devices without downloading font files.
+        sans: ["-apple-system", "BlinkMacSystemFont", "system-ui", '"Segoe UI"', "Roboto", "sans-serif"],
+        display: ["-apple-system", "BlinkMacSystemFont", "system-ui", '"Segoe UI"', "Roboto", "sans-serif"],
+        body: ["-apple-system", "BlinkMacSystemFont", "system-ui", '"Segoe UI"', "Roboto", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", '"SF Mono"', "Menlo", "Consolas", "monospace"],
       },
       boxShadow: {
         card: "0 1px 2px rgba(16,15,15,0.03), 0 6px 20px rgba(16,15,15,0.05)",

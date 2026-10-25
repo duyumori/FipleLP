@@ -1,5 +1,54 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test("mobile screenshots reserve their space before loading", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Mobile screenshots are in the page flow");
+  await page.route(/app-(home|pairing|mac|mac-devices)[^/]*\.webp/, route => route.abort());
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  const images = page.locator("#how li img, #mac img");
+  await expect(images).toHaveCount(4);
+  for (const image of await images.all()) {
+    const layout = await image.evaluate(node => {
+      const img = node as HTMLImageElement;
+      const rect = img.getBoundingClientRect();
+      return { width: rect.width, height: rect.height, loaded: img.naturalWidth > 0 };
+    });
+    expect(layout.loaded).toBe(false);
+    // Every screenshot is taller than half its width. Broken-image alt text
+    // must not collapse it and later shift all the sections below it.
+    expect(layout.height).toBeGreaterThan(layout.width / 2);
+  }
+});
+
+test("plain mobile scrolling does not repeatedly measure header zones", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop retains its animated footer tracking");
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = "auto";
+    document.querySelector("#mac")!.scrollIntoView();
+  });
+  await page.waitForTimeout(300);
+  const reads = await page.evaluate(async () => {
+    let count = 0;
+    const original = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.hasAttribute("data-header-dark")) count++;
+      return original.call(this);
+    };
+    try {
+      for (let frame = 0; frame < 20; frame++) {
+        window.scrollBy({ top: 8, behavior: "instant" });
+        await new Promise(requestAnimationFrame);
+      }
+      return count;
+    } finally {
+      Element.prototype.getBoundingClientRect = original;
+    }
+  });
+  expect(reads).toBe(0);
+});
+
 test("mobile footer artwork covers its links without an empty scroll track", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Desktop retains its pinned scenes");
   await page.goto("/");
@@ -128,6 +177,10 @@ test("touch phone animation has no blur or drop-shadow filters", async ({ page, 
     [...img.parentElement!.querySelectorAll("*")].map((el) => getComputedStyle(el).filter),
   );
   expect(filters.every((filter) => filter === "none")).toBe(true);
+  const inlineFilters = await page.locator("#how li img, #product img").evaluateAll(images =>
+    images.map(img => getComputedStyle(img).filter),
+  );
+  expect(inlineFilters.every(filter => filter === "none")).toBe(true);
   await expect(page.locator("canvas")).toHaveCount(0);
   const artwork = page.locator('[data-static-backdrop="hero"]');
   await expect(artwork).toBeVisible();
@@ -156,6 +209,15 @@ test("header follows the visible hero and stays readable on the textured footer"
   await page.waitForTimeout(800);
   await expect(page.locator("footer nav")).toBeVisible();
   await expect(page.locator("header")).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(page.locator("footer nav")).toHaveCSS("color", "rgb(42, 42, 47)");
+  await expect(page.locator(".footer-stage")).toHaveCSS("background-color", "rgb(249, 249, 246)");
+  // The compact footer is shorter than a portrait screen. Rotate so its light
+  // surface reaches the fixed header, then verify the dark header treatment.
+  const portrait = page.viewportSize()!;
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+  await expect(page.locator("header")).toHaveCSS("color", "rgb(17, 17, 17)");
+  await page.setViewportSize(portrait);
   await scrollHero(page, 0);
   await expect(page.locator("header")).toHaveCSS("color", "rgb(17, 17, 17)");
 });

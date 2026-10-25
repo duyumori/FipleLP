@@ -13,13 +13,8 @@ const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
   for (const variant of ['hero', 'footer']) {
-    const fragment = variant === 'footer'
-      ? surface
-          .replace('vec3(0.976, 0.976, 0.965)', 'vec3(0.40, 0.41, 0.42)')
-          .replace('vec3(0.180, 0.176, 0.170)', 'vec3(0.075, 0.09, 0.11)')
-          .replace('vec3(0.720, 0.710, 0.690)', 'vec3(0.70, 0.72, 0.74)')
-          .replace('vec3(0.480, 0.475, 0.460)', 'vec3(0.36, 0.39, 0.42)')
-      : surface;
+    // Both surfaces use the original light paper palette; the footer has its own pose.
+    const fragment = surface;
     for (const width of [768, 1440]) {
       const height = Math.round(width * (variant === 'hero' ? 16 / 9 : 5 / 4));
       const dataURL = await page.evaluate(({vertex, fragment, width, height, variant}) => {
