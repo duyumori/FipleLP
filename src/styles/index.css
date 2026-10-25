@@ -202,7 +202,7 @@ textarea:focus-visible {
     height: 100%;
   }
   footer [data-foot-shade] {
-    background: linear-gradient(to bottom, #111, rgb(17 17 17 / 20%) 96px, rgb(17 17 17 / 30%) 55%, rgb(17 17 17 / 70%) 100%);
+    background: linear-gradient(to bottom, #111, rgb(17 17 17 / 5%) 96px, rgb(17 17 17 / 8%) 55%, rgb(17 17 17 / 35%) 100%);
   }
   .footer-links {
     position: relative;
@@ -220,6 +220,7 @@ textarea:focus-visible {
     grid-row: 1;
     align-self: center;
     gap: 4px;
+    color: #f5f5f3;
   }
   .footer-socials a {
     display: grid;
