@@ -34,7 +34,33 @@ async function scrollHero(page: Page, progress: number) {
   await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
 }
 
-// Reduced-motion desktop fades the still surface; touch keeps its paper fully opaque.
+test("hero covers the expanded Safari viewport before the exit", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Safari toolbar geometry applies to touch screens");
+  await page.setViewportSize({ width: 428, height: 846 });
+  await page.goto("/");
+  // Headless browsers keep svh and lvh equal. Model Safari's collapsed toolbar:
+  // the small-viewport layout stays at 746px while the visible area grows to 846px.
+  // Override the small-viewport utilities, not the stage's coverage rule.
+  await page.addStyleTag({ content: `
+    @layer utilities { .h-svh { height: 746px; } }
+    [data-hero-frame] { height: 746px; }
+    .hero-track { height: 2685.6px; }
+    .inner-pages { margin-top: -1119px; }
+    .manifesto { height: 1119px; }
+  ` });
+  for (const progress of [0.2, 0.625, 0.8]) {
+    await scrollHero(page, progress);
+    const coverage = await page.locator("#top > section").evaluate(stage => ({
+      bottom: stage.getBoundingClientRect().bottom,
+      height: innerHeight,
+      heroAtBottom: !!document.elementFromPoint(innerWidth / 2, innerHeight - 8)?.closest("#top"),
+    }));
+    expect(coverage.bottom).toBeGreaterThanOrEqual(coverage.height);
+    expect(coverage.heroAtBottom).toBe(true);
+  }
+});
+
+// The paper dissolves onto an opaque stage before the next section is revealed.
 async function surfaceOpacity(page: Page) {
   return page.locator("[data-hero-surface]").evaluate((surface) => {
     let opacity = 1;
@@ -54,18 +80,20 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
 
     await scrollHero(page, 0.93);
     if (isMobile) {
-      await expect.poll(() => surfaceOpacity(page)).toBe(1);
+      await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.25);
+      await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.4);
       await expect(page.locator("[data-hero-phrase]").last()).toBeHidden();
-      // Check actual hit-testing through the clip: the new section must be exposed,
-      // not merely present in the DOM behind an opaque or grey hero layer.
-      await expect.poll(() => page.evaluate(() => {
-        const stage = document.querySelector<HTMLElement>("#top > section")!;
-        const pointerEvents = stage.style.pointerEvents;
-        stage.style.pointerEvents = "auto";
-        const exposed = !!document.elementFromPoint(innerWidth / 2, innerHeight * 0.6)?.closest(".manifesto");
-        stage.style.pointerEvents = pointerEvents;
-        return exposed;
-      })).toBe(true);
+      await expect(page.locator("#top > section")).toHaveCSS("opacity", "1");
+      await expect(page.locator("#top > section")).toHaveCSS("clip-path", "none");
+      expect(await page.evaluate(() =>
+        !!document.elementFromPoint(innerWidth / 2, innerHeight * 0.6)?.closest("#top"),
+      )).toBe(true);
+
+      await scrollHero(page, 0.98);
+      await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.01);
+      const stageOpacity = () => page.locator("#top > section").evaluate(el => Number(getComputedStyle(el).opacity));
+      await expect.poll(stageOpacity).toBeGreaterThan(0.4);
+      await expect.poll(stageOpacity).toBeLessThan(0.6);
     } else {
       await expect.poll(() => surfaceOpacity(page)).toBeGreaterThan(0.4);
       await expect.poll(() => surfaceOpacity(page)).toBeLessThan(0.6);

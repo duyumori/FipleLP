@@ -25,7 +25,8 @@ const PHONE_SPAN = 0.27;
 const SCENE_START = 0.34;
 const SCENE_SPAN = 0.19;
 const DARK: [number, number] = [0.86, 1.0]; // the hole widens over the last stretch of the pin
-const TOUCH_EXIT: [number, number] = [0.84, 1];
+const TOUCH_SURFACE_OUT: [number, number] = [0.88, 0.96];
+const TOUCH_EXIT: [number, number] = [0.96, 1];
 
 // Rhythm: a full-screen frame with 24px gutters — just the oversized light headline anchored
 // bottom-left with one short line + CTA under it; the live surface gets the rest of the screen.
@@ -52,7 +53,8 @@ export function HeroSection() {
     const target = { mx: 0, my: 0 };
 
     const scrollProgress = () => {
-      // Match the pinned h-svh stage, not the height of the changing mobile address bar.
+      // Touch uses the stable large-viewport stage, so Safari's collapsing toolbar
+      // neither exposes the next section early nor changes the scroll timeline.
       const distance = track.offsetHeight - (stageRef.current?.offsetHeight || window.innerHeight);
       return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 0;
     };
@@ -91,30 +93,30 @@ export function HeroSection() {
 
       // Exit: the see-through hole (drawn by the shader) grows from 0 to full screen. Driven by the
       // raw (unsmoothed) progress too, so a fast scroll can never unpin the hero half-open.
-      const exit = touch ? TOUCH_EXIT : DARK;
-      const dark = smooth(exit[0], exit[1], Math.max(p, rawP));
+      const exitProgress = Math.max(p, rawP);
+      const surfaceOut = touch ? TOUCH_SURFACE_OUT : DARK;
+      const dark = smooth(surfaceOut[0], surfaceOut[1], exitProgress);
+      const stageOut = touch ? smooth(TOUCH_EXIT[0], TOUCH_EXIT[1], exitProgress) : dark;
       motion.current.dark = dark;
-      // On touch, uncover the real next section from the bottom. Keep the paper at
-      // full contrast instead of fading the whole screen through a muddy grey.
-      // One curved clip keeps the paper-like edge, with no masks or blur passes.
-      if (!touch && staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
+      // First dissolve the paper onto an opaque dark stage. Only then dissolve the
+      // stage to reveal the next heading: the two sections never show through each other.
+      if (staticBackdrop && backdropRef.current) backdropRef.current.style.opacity = String(1 - dark);
       if (touch && !reduced && backdropRef.current) {
         backdropRef.current.style.transform = `translate3d(0, ${-p * 20}px, 0) scale(1.08)`;
       }
       // Once the hole has swallowed the screen, take the pinned stage out of the way entirely.
       const stage = stageRef.current;
       if (stage) {
-        if (touch) stage.style.clipPath = `ellipse(125% ${(1 - dark) * 110}% at 50% 0%)`;
-        stage.style.visibility = dark > (touch ? 0.9999 : 0.995) ? "hidden" : "visible";
-        stage.style.pointerEvents = dark > 0.5 ? "none" : "";
+        if (touch) stage.style.opacity = String(1 - stageOut);
+        stage.style.visibility = stageOut > (touch ? 0.9999 : 0.995) ? "hidden" : "visible";
+        stage.style.pointerEvents = (touch ? stageOut > 0 : dark > 0.5) ? "none" : "";
       }
       // Invisible marker the header reads for contrast. Desktop uses raw progress
       // so a lagging eased value cannot leave it white after returning to the top.
       if (darkRef.current) {
-        // The mobile wipe reaches the header only at the very end. Its colour
-        // follows that edge, not an unrelated halfway point in the transition.
+        // Match the paper's fade, while the opaque stage keeps the next section covered.
         const headerDark = touch
-          ? Number((1 - dark) * 1.1 * (stage?.offsetHeight || window.innerHeight) <= 36)
+          ? dark
           : smooth(DARK[0], DARK[1], rawP);
         darkRef.current.style.opacity = String(headerDark);
       }
@@ -127,7 +129,7 @@ export function HeroSection() {
         const local = (p - (SCENE_START + i * SCENE_SPAN)) / SCENE_SPAN;
         const fadeIn = smooth(0, 0.3, local);
         const fadeOut = i === last
-          ? touch ? smooth(0.81, 0.89, Math.max(p, rawP)) : smooth(DARK[0], DARK[0] + 0.05, p)
+          ? touch ? smooth(0.81, TOUCH_SURFACE_OUT[0], exitProgress) : smooth(DARK[0], DARK[0] + 0.05, p)
           : smooth(0.7, 1, local);
         const o = fadeIn * (1 - fadeOut);
         if (o < 0.01) {
@@ -237,6 +239,7 @@ export function HeroSection() {
         {/* Intro screen: copy bottom-left, the live surface everywhere else */}
         <div
           ref={introRef}
+          data-hero-frame
           className="flex min-h-0 flex-1 flex-col justify-end px-6 pt-[72px] pb-[clamp(40px,10svh,104px)] will-change-transform max-sm:px-4 max-sm:pt-16 max-sm:pb-12"
         >
           <div ref={titleRef}>
@@ -268,7 +271,7 @@ export function HeroSection() {
         </div>
 
         {/* Scroll scene, beat 1: the real app, centre stage */}
-        <div className="pointer-events-none absolute inset-0 grid place-items-center pt-[72px] max-sm:pt-16">
+        <div data-hero-frame className="pointer-events-none absolute inset-0 grid place-items-center pt-[72px] max-sm:pt-16">
           <div ref={phoneRef} data-hero-phone className="invisible relative opacity-0 will-change-transform">
             <div
               className="absolute top-1/2 left-1/2 h-[80%] w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-[40%] bg-[radial-gradient(circle,rgba(16,15,15,0.10),transparent_70%)] blur-2xl"
@@ -285,7 +288,7 @@ export function HeroSection() {
         </div>
 
         {/* Scroll scene, beat 2: phrases stacked in one cell, swapped by scroll progress */}
-        <div className="pointer-events-none absolute inset-0 grid place-items-center px-6 max-sm:px-4">
+        <div data-hero-frame className="pointer-events-none absolute inset-0 grid place-items-center px-6 max-sm:px-4">
           {t.hero.scene.map((line, i) => (
             <p
               key={i}
