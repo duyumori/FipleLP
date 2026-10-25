@@ -271,6 +271,7 @@ export function HeroBackdrop({
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fine = window.matchMedia("(pointer: fine)").matches;
+    const animated = fine && !reduced;
     // Rendering into half-float textures needs this; without it the surface still runs, just no fluid.
     const fluidOk = !!gl.getExtension("EXT_color_buffer_float") && fine && !reduced;
 
@@ -480,14 +481,16 @@ export function HeroBackdrop({
       const m = motion.current;
       gl.useProgram(surface.p);
       gl.uniform2f(surface.u("uRes"), canvas.width, canvas.height);
-      gl.uniform1f(surface.u("uTime"), 20 + ms / 1000);
-      gl.uniform1f(surface.u("uProgress"), m?.p ?? 0);
-      gl.uniform2f(surface.u("uMouse"), m?.mx ?? 0, m?.my ?? 0);
+      // A resize must not bake a partial exit into the frozen mobile surface: its
+      // transition is composited by HeroSection, and the still stays identical.
+      gl.uniform1f(surface.u("uTime"), 20 + (animated ? ms / 1000 : 0));
+      gl.uniform1f(surface.u("uProgress"), animated ? m.p : 0);
+      gl.uniform2f(surface.u("uMouse"), animated ? m.mx : 0, animated ? m.my : 0);
       gl.uniform1f(surface.u("uSimH"), sim ? sim.h : 1);
       gl.uniform4f(surface.u("uRest"), pose.center[0], pose.center[1], pose.angle, pose.squash);
       gl.uniform1f(surface.u("uSeed"), pose.seed);
       gl.uniform1f(surface.u("uFadeBottom"), pose.fadeBottom ? 1 : 0);
-      gl.uniform1f(surface.u("uDark"), m?.dark ?? 0);
+      gl.uniform1f(surface.u("uDark"), animated ? m.dark ?? 0 : 0);
       gl.uniform1i(surface.u("uVelocity"), bindTex(0, sim ? sim.vel.get().read.tex : still.tex));
       blit(null);
     };
@@ -503,14 +506,14 @@ export function HeroBackdrop({
       const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       const w = Math.round(canvas.clientWidth * dpr);
       const h = Math.round(canvas.clientHeight * dpr);
-      if (canvas.width === w && canvas.height === h) return;
+      if (canvas.width === w && canvas.height === h) return false;
       canvas.width = w;
       canvas.height = h;
       buildSim();
+      return true;
     };
 
     let raf = 0;
-    let drawRaf = 0;
     let visible = true;
     let last = 0;
     const loop = (ms: number) => {
@@ -523,26 +526,19 @@ export function HeroBackdrop({
       raf = requestAnimationFrame(loop);
     };
     const start = () => {
-      if (fine && !raf && visible && !document.hidden && !reduced) {
+      if (animated && !raf && visible && !document.hidden) {
         last = 0;
         raf = requestAnimationFrame(loop);
       }
     };
     const stop = () => {
       cancelAnimationFrame(raf);
-      cancelAnimationFrame(drawRaf);
       raf = 0;
-      drawRaf = 0;
-    };
-    const onScroll = () => {
-      // Touch: the frozen still frame never redraws on scroll — the scene (phone, phrases,
-      // text) composites on top of it. Resize re-draws via the ResizeObserver below.
     };
 
     const ro = new ResizeObserver(() => {
-      resize();
-      // repaint immediately so a resize never shows a blank frame (frozen clock on touch)
-      drawSurface(fine ? performance.now() : 0);
+      // Touch never redraws on scroll; only a real buffer resize needs a new still.
+      if (resize()) drawSurface(animated ? performance.now() : 0);
     });
     ro.observe(canvas);
     // Only animate while the hero is on screen and the tab is visible.
@@ -554,7 +550,6 @@ export function HeroBackdrop({
     io.observe(canvas);
     const onVis = () => (document.hidden ? stop() : start());
     document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("scroll", onScroll, { passive: true });
     if (fluidOk) window.addEventListener("pointermove", onPointer, { passive: true });
 
     resize();
@@ -566,7 +561,6 @@ export function HeroBackdrop({
       ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointermove", onPointer);
       freeTargets();
       gl.deleteTexture(still.tex);

@@ -11,6 +11,16 @@ export function Header() {
   const [onDark, setOnDark] = useState(false);
   useEffect(() => {
     const check = () => {
+      // Inner pages overlap the pinned hero. While it covers the header, only its
+      // exit marker decides the color; the hidden dark page underneath must not win.
+      const hero = document.querySelector<HTMLElement>("#top [data-header-dark]");
+      if (hero) {
+        const r = hero.getBoundingClientRect();
+        if (r.top <= 36 && r.bottom > 36) {
+          setOnDark(Number(hero.style.opacity) > 0.5);
+          return;
+        }
+      }
       const zones = document.querySelectorAll<HTMLElement>("[data-header-dark]");
       setOnDark(
         [...zones].some((z) => {
@@ -34,10 +44,12 @@ export function Header() {
     };
     check();
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(settle);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, []);
 

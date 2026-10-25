@@ -6,6 +6,7 @@ import { HeroBackdrop } from "./HeroBackdrop";
 import type { BackdropPose, HeroMotion } from "./HeroBackdrop";
 import { useT } from "../lib/i18n";
 import { LINKEDIN_URL, TELEGRAM_URL } from "../lib/links";
+import { dampingFactor } from "../lib/motion";
 import { meta } from "../lib/ui";
 
 // lucide dropped brand icons, so the LinkedIn glyph ships inline.
@@ -46,6 +47,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   const t = useT();
   const motion = useRef<HeroMotion>({ p: 0, mx: 0, my: 0 });
   const trackRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const veilRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   // The crater is desktop-only: on touch a WebGL context (programs, textures, GPU memory)
@@ -65,17 +67,20 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
 
     const target = { mx: 0, my: 0 };
 
-    const progress = () => {
-      const distance = track.offsetHeight - window.innerHeight;
-      return distance > 0 ? clamp01(-track.getBoundingClientRect().top / distance) : 1;
+    const measure = () => {
+      // Read geometry once, using the same stable viewport as the h-svh stage.
+      const height = stageRef.current?.offsetHeight || window.innerHeight;
+      const top = track.getBoundingClientRect().top;
+      const distance = track.offsetHeight - height;
+      return {
+        p: distance > 0 ? clamp01(-top / distance) : 1,
+        veil: clamp01((VEIL_FROM - top / height) / (VEIL_FROM - VEIL_TO)),
+        frame: clamp01((FRAME_FROM - top / height) / (FRAME_FROM - FRAME_TO)),
+      };
     };
-
-    const entry = (from: number, to: number) => {
-      const top = track.getBoundingClientRect().top / window.innerHeight;
-      return clamp01((from - top) / (from - to));
-    };
-    let veilP = entry(VEIL_FROM, VEIL_TO);
-    let frameP = entry(FRAME_FROM, FRAME_TO);
+    const initial = measure();
+    let veilP = initial.veil;
+    let frameP = initial.frame;
 
     const apply = () => {
       const veil = 1 - smooth(0, 1, veilP);
@@ -96,17 +101,21 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     // and tab visibility wake it again.
     let raf = 0;
     let visible = false;
-    const tick = () => {
+    let lastTime = 0;
+    const tick = (now: number) => {
       raf = 0;
+      const dt = now - lastTime;
+      lastTime = now;
+      const scrollEase = reduced ? 1 : dampingFactor(0.12, dt);
+      const entryEase = reduced ? 1 : dampingFactor(0.2, dt);
+      const pointerEase = dampingFactor(0.06, dt);
       const m = motion.current;
-      const pT = progress();
-      const vT = entry(VEIL_FROM, VEIL_TO);
-      const fT = entry(FRAME_FROM, FRAME_TO);
-      m.p += (pT - m.p) * (reduced ? 1 : 0.12);
-      veilP += (vT - veilP) * (reduced ? 1 : 0.2);
-      frameP += (fT - frameP) * (reduced ? 1 : 0.2);
-      m.mx += (target.mx - m.mx) * 0.06;
-      m.my += (target.my - m.my) * 0.06;
+      const { p: pT, veil: vT, frame: fT } = measure();
+      m.p += (pT - m.p) * scrollEase;
+      veilP += (vT - veilP) * entryEase;
+      frameP += (fT - frameP) * entryEase;
+      m.mx += (target.mx - m.mx) * pointerEase;
+      m.my += (target.my - m.my) * pointerEase;
       apply();
       const settled =
         Math.abs(pT - m.p) < 0.0004 &&
@@ -117,7 +126,10 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
       if (!settled) raf = requestAnimationFrame(tick);
     };
     const wake = () => {
-      if (visible && !raf && !document.hidden) raf = requestAnimationFrame(tick);
+      if (visible && !raf && !document.hidden) {
+        lastTime = performance.now();
+        raf = requestAnimationFrame(tick);
+      }
     };
     const onScroll = () => wake();
     const onPointer = (e: PointerEvent) => {
@@ -145,7 +157,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
       }
     });
     io.observe(track);
-    motion.current.p = progress();
+    motion.current.p = initial.p;
     apply();
 
     return () => {
@@ -166,11 +178,11 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   return (
     <footer ref={trackRef} className={`relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
       {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
-      <div className="sticky top-0 h-svh overflow-hidden">
+      <div ref={stageRef} className="sticky top-0 h-svh overflow-hidden">
         {crater && <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />}
         {/* Phones swap the crater for a flat dark panel — the entry reads as a plain dark
             section boundary, and the footer costs zero WebGL/raster work. */}
-        <div data-foot-flat className="absolute inset-0 hidden bg-[linear-gradient(to_bottom,#171614_0%,#100f0f_100%)]" aria-hidden="true" />
+        <div data-foot-flat data-header-dark className="absolute inset-0 hidden bg-[linear-gradient(to_bottom,#171614_0%,#100f0f_100%)]" aria-hidden="true" />
         <div
           data-foot-shade
           className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(16,15,15,0.5)_72%,rgba(16,15,15,0.86))]"
