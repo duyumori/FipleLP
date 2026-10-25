@@ -102,6 +102,23 @@ async function scrollHero(page: Page, progress: number) {
   await expect.poll(() => page.evaluate(top => Math.abs(scrollY - top), target)).toBeLessThanOrEqual(1);
 }
 
+test("touch hero keeps its paper background still between scene changes", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop retains its live surface");
+  await page.goto("/");
+  await scrollHero(page, 0.43);
+  await expect(page.locator('[data-hero-phrase="0"]')).toHaveCSS("opacity", "1");
+  const surface = page.locator("[data-hero-surface]");
+  const transform = await surface.evaluate(el => getComputedStyle(el).transform);
+  await scrollHero(page, 0.46);
+  await page.evaluate(async () => {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+  });
+  // Small scrolls within the same held phrase must not move a full-screen Retina
+  // image or keep rewriting unchanged layers while the scene catches up.
+  await expect(surface).toHaveCSS("transform", transform);
+});
+
 test("hero covers the expanded Safari viewport before the exit", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Safari toolbar geometry applies to touch screens");
   await page.setViewportSize({ width: 428, height: 846 });
