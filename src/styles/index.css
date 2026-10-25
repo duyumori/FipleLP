@@ -263,6 +263,14 @@ textarea:focus-visible {
   }
 }
 
+/* Native fonts have different metrics across platforms. Leave enough room for
+   translated copy even with a wider system fallback on a narrow phone. */
+@media (hover: none) and (pointer: coarse) and (max-width: 480px) {
+  .manifesto h2 {
+    font-size: clamp(32px, 10vw, 44px);
+  }
+}
+
 /* Keep the pinned handoff readable when a phone is turned sideways. */
 @media (hover: none) and (pointer: coarse) and (max-height: 540px) {
   .manifesto > div {
