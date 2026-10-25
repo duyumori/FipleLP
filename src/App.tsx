@@ -69,7 +69,7 @@ export default function App() {
         {/* Dark inner pages. Tucked 150svh under the hero's pinned track: the hero ends by opening
             a hole in the crater, and these pages are what shows through it (as on topology.vc).
             The manifesto comes first — it pins dead-centre while the hole opens. */}
-        <div className="theme-dark relative -mt-[150svh]" data-header-dark>
+        <div className="theme-dark inner-pages relative -mt-[150svh]" data-header-dark>
           <UseCasesSection />
           <DemoSection />
           <HowItWorksSection />

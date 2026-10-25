@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 import { ArrowUp, Send } from "lucide-react";
 import icon from "../assets/fiple-icon.png";
 import { HeroBackdrop } from "./HeroBackdrop";
+import { MobileBackdrop } from "./MobileBackdrop";
 import type { BackdropPose, HeroMotion } from "./HeroBackdrop";
 import { useT } from "../lib/i18n";
 import { LINKEDIN_URL, TELEGRAM_URL } from "../lib/links";
@@ -50,8 +51,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const veilRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  // The crater is desktop-only: on touch a WebGL context (programs, textures, GPU memory)
-  // would be created just to sit behind a CSS `display: none` — the flat panel carries it.
+  // Desktop gets the live crater; touch gets a crisp pre-rendered version without WebGL.
   const [crater] = useState(() => window.matchMedia("(pointer: fine)").matches);
 
   useEffect(() => {
@@ -60,10 +60,9 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fine = window.matchMedia("(pointer: fine)").matches;
 
-    // Phones get the light version of the entry: the same veil dissolve + frame rise,
-    // but driven by cheap opacity/transform writes (the loop parks once converged).
-    // The WebGL crater itself is desktop-only — on touch it is not even mounted (below),
-    // the flat dark panel carries the visuals.
+    // The mobile footer is content-sized, with its links always in the normal flow.
+    // No long empty pin or hidden links waiting for a desktop scroll timeline.
+    if (!fine) return;
 
     const target = { mx: 0, my: 0 };
 
@@ -176,24 +175,23 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
   };
 
   return (
-    <footer ref={trackRef} className={`relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
+    <footer ref={trackRef} data-header-dark={!crater || undefined} className={`site-footer relative isolate text-white ${reveal ? "h-[190svh]" : "h-svh"}`}>
       {/* One pinned screen: the surface, the bottom shade, the black veil and the links frame */}
-      <div ref={stageRef} className="sticky top-0 h-svh overflow-hidden">
-        {crater && <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />}
-        {/* Phones swap the crater for a flat dark panel — the entry reads as a plain dark
-            section boundary, and the footer costs zero WebGL/raster work. */}
-        <div data-foot-flat data-header-dark className="absolute inset-0 hidden bg-[linear-gradient(to_bottom,#171614_0%,#100f0f_100%)]" aria-hidden="true" />
+      <div ref={stageRef} className="footer-stage sticky top-0 h-svh overflow-hidden">
+        {crater
+          ? <HeroBackdrop motion={motion} pose={FOOTER_POSE} className="absolute inset-0 h-full w-full" />
+          : <div className="footer-art absolute inset-x-0 top-0"><MobileBackdrop variant="footer" /></div>}
         <div
           data-foot-shade
           className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(16,15,15,0.5)_72%,rgba(16,15,15,0.86))]"
           aria-hidden="true"
         />
-        {reveal && <div ref={veilRef} className="absolute inset-0 bg-ink" data-header-dark aria-hidden="true" />}
+        {reveal && crater && <div ref={veilRef} className="absolute inset-0 bg-ink" data-header-dark aria-hidden="true" />}
 
         {/* Links frame, anchored to the bottom; on home it rises in from below */}
         <div
           ref={frameRef}
-          className={`absolute inset-x-0 bottom-0 px-6 pb-6 max-sm:px-4 ${reveal ? "pointer-events-none opacity-0 will-change-transform" : ""}`}
+          className={`footer-links absolute inset-x-0 bottom-0 px-6 pb-6 max-sm:px-4 ${reveal && crater ? "pointer-events-none opacity-0 will-change-transform" : ""}`}
         >
           {/* Top bracket */}
           <div className="h-[6px] rounded-t-[4px] border-x border-t border-white/40" aria-hidden="true" />
@@ -202,7 +200,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
             <a
               href="#top"
               onClick={toTop}
-              className="col-span-4 flex items-center gap-2.5 self-start max-[940px]:col-span-12"
+              className="footer-brand col-span-4 flex items-center gap-2.5 self-start max-[940px]:col-span-12"
               aria-label="Fiple — back to top"
             >
               <img src={icon} alt="" className="size-9" width={36} height={36} />
@@ -226,7 +224,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
               </div>
             </nav>
 
-            <div className="col-span-2 col-start-11 flex justify-end gap-4 self-start text-white/75 max-[940px]:col-span-4 max-[940px]:col-start-9">
+            <div className="footer-socials col-span-2 col-start-11 flex justify-end gap-4 self-start text-white/75 max-[940px]:col-span-4 max-[940px]:col-start-9">
               <a className={link} href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram — @maksatovdias">
                 <Send size={19} />
               </a>
@@ -236,7 +234,7 @@ export function Footer({ reveal = false }: { reveal?: boolean }) {
             </div>
           </div>
 
-          <div className="mt-16 flex items-baseline justify-between gap-6 px-5 pb-5 max-sm:mt-12 max-sm:flex-col max-sm:items-start max-sm:px-1">
+          <div className="footer-contact mt-16 flex items-baseline justify-between gap-6 px-5 pb-5 max-sm:mt-12 max-sm:flex-col max-sm:items-start max-sm:px-1">
             <p className="text-[15px] font-light text-white/60">
               {t.footer.getInTouch}{" "}
               <a className={`text-white ${link}`} href={`mailto:${SUPPORT_EMAIL}`}>
